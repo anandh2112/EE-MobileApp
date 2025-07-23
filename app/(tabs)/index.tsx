@@ -1,75 +1,186 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import React, { useState, useRef } from 'react';
+import {
+  ScrollView,
+  View,
+  StyleSheet,
+  Dimensions,
+  TouchableOpacity,
+  Animated,
+  NativeSyntheticEvent,
+  NativeScrollEvent,
+  Platform,
+} from 'react-native';
+import { AntDesign } from '@expo/vector-icons';
 
-import { HelloWave } from '@/components/HelloWave';
-import ParallaxScrollView from '@/components/ParallaxScrollView';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
+import LandingHeader from '../../components/landing-top';
+import LandingMetrics from '../../components/landing-bottom';
+import Datepicker from '@/components/datepicker';
+import HourlyEnergy from '../../components/hourlyenergy';
+import EnergyMeters from '../../components/energymeters';
+import PeakDemand from '../../components/peakdemand';
+import HeatMap from '../../components/heatmap';
+import DieselGen from '@/components/dieselgenerator';
+import Solar from '@/components/solar';
+import BatteryStorage from '@/components/battery';
+import EVChargers from '@/components/ev';
+import TopBar from '@/components/topbar';
 
-export default function HomeScreen() {
+const { height: screenHeight } = Dimensions.get('window');
+const containerHeight = screenHeight * 0.78;
+
+export default function Index() {
+  const [facilityExpanded, setFacilityExpanded] = useState(false);
+  const [selectedDates, setSelectedDates] = useState({ start: '', end: '' });
+
+  const scrollRef = useRef<ScrollView>(null);
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const isAnimating = useRef(false);
+
+  const [isVisible, setIsVisible] = useState(false);
+
+  const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const scrollY = event.nativeEvent.contentOffset.y;
+
+    // prevent overlapping animation calls
+    if (!isAnimating.current) {
+      if (scrollY > 100 && !isVisible) {
+        isAnimating.current = true;
+        setIsVisible(true);
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+        }).start(() => (isAnimating.current = false));
+      } else if (scrollY <= 100 && isVisible) {
+        isAnimating.current = true;
+        setIsVisible(false);
+        Animated.timing(fadeAnim, {
+          toValue: 0,
+          duration: 300,
+          useNativeDriver: true,
+        }).start(() => (isAnimating.current = false));
+      }
+    }
+  };
+
+  const scrollToTop = () => {
+    // fallback smooth scroll for Android < 9
+    if (Platform.OS === 'android') {
+      let scrollY = 0;
+      const interval = setInterval(() => {
+        scrollRef.current?.scrollTo({ y: scrollY, animated: true });
+        scrollY -= 50;
+        if (scrollY <= 0) {
+          clearInterval(interval);
+        }
+      }, 10);
+    } else {
+      scrollRef.current?.scrollTo({ y: 0, animated: true });
+    }
+  };
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+    <View style={styles.pageContainer}>
+      <ScrollView
+        ref={scrollRef}
+        onScroll={handleScroll}
+        scrollEventThrottle={16} // optimal value for smooth UX
+      >
+        <View style={styles.container}>
+          <TopBar />
+
+          <View style={[styles.landingRoot, { height: containerHeight }]}>
+            <View style={styles.datepickerContainer}>
+              <Datepicker
+                onDateChange={(start, end) =>
+                  setSelectedDates({ start, end })
+                }
+              />
+            </View>
+
+            <View style={styles.headerContainer}>
+              <LandingHeader
+                facilityExpanded={facilityExpanded}
+                setFacilityExpanded={setFacilityExpanded}
+              />
+            </View>
+
+            <View style={styles.metricsContainer}>
+              <LandingMetrics
+                startDateTime={selectedDates.start}
+                endDateTime={selectedDates.end}
+              />
+            </View>
+          </View>
+
+          <HourlyEnergy
+            startDateTime={selectedDates.start}
+            endDateTime={selectedDates.end}
+          />
+
+          <EnergyMeters
+            startDateTime={selectedDates.start}
+            endDateTime={selectedDates.end}
+          />
+
+          <PeakDemand />
+          <HeatMap />
+
+          <DieselGen
+            startDateTime={selectedDates.start}
+            endDateTime={selectedDates.end}
+          />
+
+          <Solar />
+          <BatteryStorage />
+          <EVChargers />
+        </View>
+      </ScrollView>
+
+      <Animated.View style={[styles.scrollTopButton, { opacity: fadeAnim }]}>
+        <TouchableOpacity onPress={scrollToTop} style={styles.innerButton}>
+          <AntDesign name="up" size={24} color="#fff" />
+        </TouchableOpacity>
+      </Animated.View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+  pageContainer: {
+    flex: 1,
+    backgroundColor: 'white',
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
+  container: {
+    flex: 1,
+    backgroundColor: 'white',
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
+  landingRoot: {
+    width: '100%',
+    backgroundColor: 'white',
+  },
+  headerContainer: {
+    flex: 3.8,
+  },
+  metricsContainer: {
+    flex: 3,
+  },
+  datepickerContainer: {
+  },
+  scrollTopButton: {
     position: 'absolute',
+    bottom: 30,
+    right: 20,
+    zIndex: 20,
+  },
+  innerButton: {
+    backgroundColor: '#0d9488',
+    borderRadius: 30,
+    padding: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    elevation: 5,
   },
 });
