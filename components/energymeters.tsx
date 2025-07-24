@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import axios from 'axios';
 import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-native-responsive-screen';
+import { useRouter } from 'expo-router';
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = (width - 70) * 0.48;
@@ -55,7 +56,18 @@ const getZoneInfo = (id: number) => {
   return { name: 'Unknown Zone', category: 'N/A' };
 };
 
-const EnergyMeterCard = ({ id, consumption }: { id: number; consumption: number }) => {
+const EnergyMeterCard = ({
+  id,
+  consumption,
+  startDateTime,
+  endDateTime,
+}: {
+  id: number;
+  consumption: number;
+  startDateTime: string;
+  endDateTime: string;
+}) => {
+  const router = useRouter();
   const zoneInfo = getZoneInfo(id);
 
   return (
@@ -72,7 +84,32 @@ const EnergyMeterCard = ({ id, consumption }: { id: number; consumption: number 
       )}
       <Text style={styles.kwhText}>{consumption.toFixed(1)} kVAh</Text>
       <Text style={styles.label}>Consumption</Text>
-      <TouchableOpacity>
+      <TouchableOpacity
+        onPress={() => {
+          if (id === 0) {
+            // Total Consumption card: go to all zones
+            router.push({
+              pathname: '/analytics',
+              params: {
+                initialTab: 'Zones',
+                startDate: startDateTime,
+                endDate: endDateTime,
+              },
+            });
+          } else {
+            // Specific zone
+            router.push({
+              pathname: '/analytics',
+              params: {
+                initialTab: 'Zones',
+                startDate: startDateTime,
+                endDate: endDateTime,
+                meterId: id,
+              },
+            });
+          }
+        }}
+      >
         <Text style={styles.detailsLink}>View Details</Text>
       </TouchableOpacity>
     </View>
@@ -179,7 +216,13 @@ export default function EnergyMeters({ startDateTime, endDateTime }: EnergyMeter
           {zonePages.map((page, pageIndex) => (
             <View key={pageIndex} style={styles.page}>
               {page.map((meter, index) => (
-                <EnergyMeterCard key={index} id={meter.id} consumption={meter.consumption} />
+                <EnergyMeterCard
+                  key={index}
+                  id={meter.id}
+                  consumption={meter.consumption}
+                  startDateTime={startDateTime}
+                  endDateTime={endDateTime}
+                />
               ))}
             </View>
           ))}

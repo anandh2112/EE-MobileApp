@@ -7,7 +7,7 @@ import {
   Dimensions,
   Animated,
 } from "react-native";
-import { StackedBarChart } from "react-native-chart-kit";
+import { BarChart } from "react-native-chart-kit";
 import { Feather } from "@expo/vector-icons";
 import axios from "axios";
 
@@ -19,7 +19,7 @@ const chartConfig = {
   backgroundGradientFrom: "#ffffff",
   backgroundGradientTo: "#ffffff",
   decimalPlaces: 1,
-  color: () => `#000`,
+  color: () => `#007bff`,
   labelColor: () => `#000`,
   style: {
     borderRadius: 6,
@@ -92,18 +92,6 @@ export default function HourlyEnergy({
     { key: "INR", label: "INR (₹)" },
   ];
 
-  // Convert flat data to stacked segments with color logic
-  const stackedData = energyData.map((value, index) => {
-    const hour = index;
-    if ((hour >= 19 && hour <= 23) || (hour >= 0 && hour <= 2)) {
-      return [value, 0, 0]; // Peak
-    } else if ((hour >= 3 && hour <= 4) || (hour >= 10 && hour <= 18)) {
-      return [0, value, 0]; // Normal
-    } else {
-      return [0, 0, value]; // Off-Peak
-    }
-  });
-
   return (
     <View style={styles.container}>
       <View style={styles.card}>
@@ -150,18 +138,19 @@ export default function HourlyEnergy({
           )}
           style={{ marginBottom: 10 }}
         >
-          <View>
-            <StackedBarChart
+          <View style={{ marginLeft: -40 }}>
+            <BarChart
               data={{
                 labels: Array.from({ length: 24 }, (_, i) => `${i}`),
-                legend: ["Peak", "Normal", "Off-Peak"],
-                data: stackedData,
-                barColors: ["#F77B72", "#FFB74C", "#81C784"],
+                datasets: [{ data: energyData }],
               }}
               width={chartWidth}
               height={chartHeight}
+              yAxisLabel=""
+              yAxisSuffix=""
+              withVerticalLabels={true}
+              yLabelsOffset={-1} 
               chartConfig={{ ...chartConfig, decimalPlaces: 0 }}
-              hideLegend={true}
               fromZero
               style={{ borderRadius: 6 }}
             />
@@ -179,22 +168,6 @@ export default function HourlyEnergy({
               },
             ]}
           />
-        </View>
-
-        {/* Legend */}
-        <View style={styles.legendContainer}>
-          <View style={styles.legendItem}>
-            <View style={[styles.colorBox, { backgroundColor: "#F77B72" }]} />
-            <Text style={styles.legendLabel}>Peak</Text>
-          </View>
-          <View style={styles.legendItem}>
-            <View style={[styles.colorBox, { backgroundColor: "#FFB74C" }]} />
-            <Text style={styles.legendLabel}>Normal</Text>
-          </View>
-          <View style={styles.legendItem}>
-            <View style={[styles.colorBox, { backgroundColor: "#81C784" }]} />
-            <Text style={styles.legendLabel}>Off-Peak</Text>
-          </View>
         </View>
       </View>
     </View>
@@ -271,24 +244,5 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 0,
     left: 0,
-  },
-  legendContainer: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    marginTop: 8,
-  },
-  legendItem: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  colorBox: {
-    width: 14,
-    height: 14,
-    marginRight: 6,
-    borderRadius: 2,
-  },
-  legendLabel: {
-    fontSize: 13,
-    color: "#333",
   },
 });

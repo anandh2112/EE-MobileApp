@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -12,6 +12,7 @@ import ELog from '@/components/elog';
 import Zones from '@/components/zones';
 import Peakanalysis from '@/components/peakanalysis';
 import AnComp from '@/components/an-comp';
+import { useLocalSearchParams } from 'expo-router';
 
 const tabs = [
   { label: 'eLog', key: 'eLog' },
@@ -22,14 +23,32 @@ const tabs = [
 type TabKey = typeof tabs[number]['key'];
 
 export default function Analytics() {
-  const [activeTab, setActiveTab] = useState<TabKey>('eLog');
-  const [start, setStart] = useState('');
-  const [end, setEnd] = useState('');
+  const { initialTab, startDate, endDate, meterId } = useLocalSearchParams();
+
+  // Use effect to set tab/date from params only on first mount
+  const [activeTab, setActiveTab] = useState<TabKey>(
+    initialTab === 'Zones' ? 'Zones' : 'eLog'
+  );
+  const [start, setStart] = useState(typeof startDate === 'string' ? startDate : '');
+  const [end, setEnd] = useState(typeof endDate === 'string' ? endDate : '');
 
   const underlineX = useRef(new Animated.Value(0)).current;
   const underlineWidth = useRef(new Animated.Value(0)).current;
 
   const tabLayouts = useRef<{ x: number; width: number }[]>([]).current;
+
+  useEffect(() => {
+    // If user navigates again and params change, update tab/dates
+    if (initialTab && typeof initialTab === 'string') {
+      setActiveTab(initialTab === 'Zones' ? 'Zones' : 'eLog');
+    }
+    if (startDate && typeof startDate === 'string') {
+      setStart(startDate);
+    }
+    if (endDate && typeof endDate === 'string') {
+      setEnd(endDate);
+    }
+  }, [initialTab, startDate, endDate]);
 
   const handleTabPress = (index: number) => {
     setActiveTab(tabs[index].key);
@@ -62,8 +81,7 @@ export default function Analytics() {
   const handleDateChange = (startDate: string, endDate: string) => {
     setStart(startDate);
     setEnd(endDate);
-    console.log('Start Date:', startDate);
-    console.log('End Date:', endDate);
+    // Optionally handle analytics based on meterId here
   };
 
   return (
@@ -113,7 +131,7 @@ export default function Analytics() {
             <ELog startDate={start} endDate={end} />
           </View>
           <View style={{ display: activeTab === 'Zones' ? 'flex' : 'none', flex: 1 }}>
-            <Zones startDate={start} endDate={end} />
+            <Zones startDate={start} endDate={end} meterId={meterId} />
           </View>
           <View style={{ display: activeTab === 'Peak' ? 'flex' : 'none', flex: 1 }}>
             <Peakanalysis />

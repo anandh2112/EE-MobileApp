@@ -23,9 +23,10 @@ const zoneMetadata = [
 type ZonesProps = {
   startDate: string;
   endDate: string;
+  meterId?: string | string[];
 };
 
-export default function Zones({ startDate, endDate }: ZonesProps) {
+export default function Zones({ startDate, endDate, meterId }: ZonesProps) {
   const [selectedUnit, setSelectedUnit] = useState<'kVAh' | 'kWh'>('kVAh');
   const animation = useRef(new Animated.Value(0)).current;
 
@@ -39,6 +40,16 @@ export default function Zones({ startDate, endDate }: ZonesProps) {
   const [zoneData, setZoneData] = useState<ZoneDataItem[]>([]);
   const [selectedView, setSelectedView] = useState<'all' | 'single'>('all');
   const [selectedZone, setSelectedZone] = useState('1');
+
+  // Fix: Always respond to meterId changes, set to 'all' if not present
+  useEffect(() => {
+    if (meterId) {
+      setSelectedView('single');
+      setSelectedZone(Array.isArray(meterId) ? meterId[0] : meterId.toString());
+    } else {
+      setSelectedView('all');
+    }
+  }, [meterId]);
 
   const toggleButtonWidth = 60;
   const toggleButtonHeight = 18;
@@ -242,28 +253,34 @@ export default function Zones({ startDate, endDate }: ZonesProps) {
           {selectedView === 'all' ? (
             <>
               <ScrollView horizontal showsHorizontalScrollIndicator>
-                <StackedBarChart
-                  data={chartData}
-                  width={chartWidth}
-                  height={220}
-                  chartConfig={{
-                    backgroundGradientFrom: '#fff',
-                    backgroundGradientTo: '#fff',
-                    decimalPlaces: 0,
-                    formatYLabel: (y) => parseInt(y).toString(),
-                    color: (opacity = 1) => `rgba(0,0,0,${opacity})`,
-                    labelColor: (opacity = 1) => `rgba(0,0,0,${opacity})`,
-                    style: { borderRadius: 8 },
-                    propsForLabels: { fontSize: 10 },
-                    propsForBackgroundLines: { strokeWidth: 0.5 },
-                    barPercentage: 0.7,
-                  }}
-                  hideLegend
-                  fromZero
-                  withHorizontalLabels
-                  withVerticalLabels
-                  segments={4}
-                />
+                <View style={{ marginLeft: -20 }}>
+                  <StackedBarChart
+                    data={chartData}
+                    width={chartWidth}
+                    height={220}
+                    chartConfig={{
+                      backgroundGradientFrom: '#fff',
+                      backgroundGradientTo: '#fff',
+                      decimalPlaces: 0,
+                      formatYLabel: (y) => parseInt(y).toString(),
+                      color: (opacity = 1) => `rgba(0,0,0,${opacity})`,
+                      labelColor: (opacity = 1) => `rgba(0,0,0,${opacity})`,
+                      style: { borderRadius: 8 },
+                      propsForLabels: {
+                        fontSize: 10,
+                        textAnchor: 'middle',
+                        alignmentBaseline: 'central',
+                      },
+                      propsForBackgroundLines: { strokeWidth: 0},
+                      barPercentage: 0.7,                      
+                    }}
+                    hideLegend
+                    fromZero
+                    withHorizontalLabels
+                    withVerticalLabels 
+                    segments={3}
+                  />
+                </View>
               </ScrollView>
 
               <View style={styles.legendContainer}>
@@ -278,28 +295,34 @@ export default function Zones({ startDate, endDate }: ZonesProps) {
           ) : (
             <>
               <ScrollView horizontal showsHorizontalScrollIndicator>
-                <StackedBarChart
-                  data={chartData}
-                  width={chartWidth}
-                  height={220}
-                  chartConfig={{
-                    backgroundGradientFrom: '#fff',
-                    backgroundGradientTo: '#fff',
-                    decimalPlaces: 0,
-                    formatYLabel: (y) => parseInt(y).toString(),
-                    color: () => '#2CAFFE',
-                    labelColor: (opacity = 1) => `rgba(0,0,0,${opacity})`,
-                    style: { borderRadius: 8 },
-                    propsForLabels: { fontSize: 10 },
-                    propsForBackgroundLines: { strokeWidth: 0.5 },
-                    barPercentage: 0.7,
-                  }}
-                  hideLegend
-                  fromZero
-                  withHorizontalLabels
-                  withVerticalLabels
-                  segments={4}
-                />
+                <View style={{ marginLeft: -20 }}>
+                  <StackedBarChart
+                    data={chartData}
+                    width={chartWidth}
+                    height={220}
+                    chartConfig={{
+                      backgroundGradientFrom: '#fff',
+                      backgroundGradientTo: '#fff',
+                      decimalPlaces: 0,
+                      formatYLabel: (y) => parseInt(y).toString(),
+                      color: () => '#2CAFFE',
+                      labelColor: (opacity = 1) => `rgba(0,0,0,${opacity})`,
+                      style: { borderRadius: 8 },
+                      propsForLabels: {
+                        fontSize: 10,
+                        textAnchor: 'middle',
+                        alignmentBaseline: 'central',
+                      },
+                      propsForBackgroundLines: { strokeWidth: 0},
+                      barPercentage: 0.7,
+                    }}
+                    hideLegend
+                    fromZero
+                    withHorizontalLabels
+                    withVerticalLabels
+                    segments={3}
+                  />
+                </View>
               </ScrollView>
 
               <View style={styles.pickerContainer}>

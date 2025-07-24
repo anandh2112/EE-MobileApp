@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   ScrollView,
   View,
@@ -9,6 +9,7 @@ import {
   NativeSyntheticEvent,
   NativeScrollEvent,
   Platform,
+  Easing,
 } from 'react-native';
 import { AntDesign } from '@expo/vector-icons';
 
@@ -34,37 +35,44 @@ export default function Index() {
 
   const scrollRef = useRef<ScrollView>(null);
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const isAnimating = useRef(false);
-
-  const [isVisible, setIsVisible] = useState(false);
+  const scaleAnim = useRef(new Animated.Value(0.8)).current;
 
   const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     const scrollY = event.nativeEvent.contentOffset.y;
-
-    // prevent overlapping animation calls
-    if (!isAnimating.current) {
-      if (scrollY > 100 && !isVisible) {
-        isAnimating.current = true;
-        setIsVisible(true);
+    if (scrollY > 100) {
+      Animated.parallel([
         Animated.timing(fadeAnim, {
           toValue: 1,
-          duration: 300,
+          duration: 200,
+          easing: Easing.out(Easing.ease),
           useNativeDriver: true,
-        }).start(() => (isAnimating.current = false));
-      } else if (scrollY <= 100 && isVisible) {
-        isAnimating.current = true;
-        setIsVisible(false);
+        }),
+        Animated.timing(scaleAnim, {
+          toValue: 1,
+          duration: 200,
+          easing: Easing.out(Easing.ease),
+          useNativeDriver: true,
+        }),
+      ]).start();
+    } else {
+      Animated.parallel([
         Animated.timing(fadeAnim, {
           toValue: 0,
-          duration: 300,
+          duration: 200,
+          easing: Easing.out(Easing.ease),
           useNativeDriver: true,
-        }).start(() => (isAnimating.current = false));
-      }
+        }),
+        Animated.timing(scaleAnim, {
+          toValue: 0.8,
+          duration: 200,
+          easing: Easing.out(Easing.ease),
+          useNativeDriver: true,
+        }),
+      ]).start();
     }
   };
 
   const scrollToTop = () => {
-    // fallback smooth scroll for Android < 9
     if (Platform.OS === 'android') {
       let scrollY = 0;
       const interval = setInterval(() => {
@@ -84,7 +92,7 @@ export default function Index() {
       <ScrollView
         ref={scrollRef}
         onScroll={handleScroll}
-        scrollEventThrottle={16} // optimal value for smooth UX
+        scrollEventThrottle={16}
       >
         <View style={styles.container}>
           <TopBar />
@@ -137,7 +145,15 @@ export default function Index() {
         </View>
       </ScrollView>
 
-      <Animated.View style={[styles.scrollTopButton, { opacity: fadeAnim }]}>
+      <Animated.View
+        style={[
+          styles.scrollTopButton,
+          {
+            opacity: fadeAnim,
+            transform: [{ scale: scaleAnim }],
+          },
+        ]}
+      >
         <TouchableOpacity onPress={scrollToTop} style={styles.innerButton}>
           <AntDesign name="up" size={24} color="#fff" />
         </TouchableOpacity>
@@ -165,8 +181,7 @@ const styles = StyleSheet.create({
   metricsContainer: {
     flex: 3,
   },
-  datepickerContainer: {
-  },
+  datepickerContainer: {},
   scrollTopButton: {
     position: 'absolute',
     bottom: 30,
@@ -177,10 +192,5 @@ const styles = StyleSheet.create({
     backgroundColor: '#0d9488',
     borderRadius: 30,
     padding: 5,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 10,
-    elevation: 5,
   },
 });

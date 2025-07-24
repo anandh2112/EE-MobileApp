@@ -21,18 +21,14 @@ const CHART_SEGMENTS = 4;
 function getDynamicYAxisLabels(dataArr: number[], steps: number) {
   if (!dataArr || dataArr.length === 0) return [];
   const max = Math.max(...dataArr);
-  // round up max to nearest 10/50/100 for prettier axis
   let axisMax: number;
   if (max > 1000) axisMax = Math.ceil(max / 100) * 100;
   else if (max > 500) axisMax = Math.ceil(max / 50) * 50;
   else axisMax = Math.ceil(max / 10) * 10;
-  // Always start from zero
   const labels: number[] = [];
   for (let i = 0; i <= steps; i++) {
-    // Evenly spaced ticks from axisMax to 0
     labels.push(Math.round(axisMax - (axisMax / steps) * i));
   }
-  // Ensure last label is zero (for float rounding)
   labels[labels.length - 1] = 0;
   return labels;
 }
@@ -45,13 +41,10 @@ const PeakDemand: React.FC = () => {
     index: number;
   } | null>(null);
 
-  // Timer for tooltip auto-dismiss
   const tooltipTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Dismiss tooltip after 5 seconds
   useEffect(() => {
     if (selectedDot) {
-      // Clear previous timer if any
       if (tooltipTimerRef.current) {
         clearTimeout(tooltipTimerRef.current);
       }
@@ -59,7 +52,6 @@ const PeakDemand: React.FC = () => {
         setSelectedDot(null);
       }, 5000);
     }
-    // Cleanup on unmount
     return () => {
       if (tooltipTimerRef.current) {
         clearTimeout(tooltipTimerRef.current);
@@ -68,7 +60,6 @@ const PeakDemand: React.FC = () => {
     };
   }, [selectedDot]);
 
-  // Custom scrollbar logic
   const scrollX = useRef(new Animated.Value(0)).current;
   const thumbWidth = (screenWidth / chartWidth) * screenWidth;
   const maxScroll = chartWidth - screenWidth;
@@ -79,16 +70,13 @@ const PeakDemand: React.FC = () => {
     extrapolate: 'clamp',
   });
 
-  // X-axis labels: "00", "01", ..., "23"
   const hourLabels: string[] = Array.from({ length: 24 }, (_, i) =>
     i.toString().padStart(2, '0')
   );
-  // For 48 data points, place label only for each hour (every 2 points), else empty string
   const xLabels = Array.from({ length: 48 }, (_, i) =>
     i % 2 === 0 ? hourLabels[i / 2] : ''
   );
 
-  // Constant sample data
   const peakDemandData: number[] = [
     260, 380, 490, 500, 605, 510, 420, 630, 440, 550, 570, 690,
     700, 610, 515, 420, 330, 240, 238, 335, 520, 610, 700, 690,
@@ -119,7 +107,6 @@ const PeakDemand: React.FC = () => {
     ],
   };
 
-  // Utility to position tooltip within bounds
   function getTooltipPosition(dot: { x: number; y: number } | null) {
     if (!dot) return { left: 0, top: 0 };
     let left = dot.x - TOOLTIP_WIDTH / 2;
@@ -130,31 +117,22 @@ const PeakDemand: React.FC = () => {
     return { left, top };
   }
 
-  // Helper to get hour string as "HH:MM" for a given data index
   function getHourLabel(index: number) {
-    const hour = Math.floor(index / 2)
-      .toString()
-      .padStart(2, '0');
+    const hour = Math.floor(index / 2).toString().padStart(2, '0');
     const minute = index % 2 === 0 ? '00' : '30';
     return `${hour}:${minute}`;
   }
 
-  // Calculate y-axis labels dynamically from all datasets, starting from zero
   const allData = [...peakDemandData, ...upperCeiling, ...lowerCeiling];
   const yAxisLabels = getDynamicYAxisLabels(allData, CHART_SEGMENTS);
 
-  // Download handler placeholder
   const onDownloadPress = () => {
-    // Implement your download logic here
-    // e.g., export data as CSV, PDF, etc.
-    // For now, just alert
     alert('Download feature coming soon!');
   };
 
   return (
     <View style={styles.container}>
       <View style={styles.card}>
-        {/* Heading and Download Button Row */}
         <View style={styles.headerRow}>
           <Text style={styles.heading}>Peak Demand</Text>
           <TouchableOpacity style={styles.downloadButton} onPress={onDownloadPress}>
@@ -162,15 +140,6 @@ const PeakDemand: React.FC = () => {
           </TouchableOpacity>
         </View>
         <View style={{ flexDirection: 'row' }}>
-          {/* Y-axis labels (fixed) */}
-          <View style={{ width: 44, alignItems: 'flex-end', paddingRight: 2, height: chartHeight + 16, justifyContent: 'space-between' }}>
-            {yAxisLabels.map((label, idx) => (
-              <Text key={idx} style={{ fontSize: 12, color: '#666' }}>
-                {label}
-              </Text>
-            ))}
-          </View>
-          {/* Scrollable chart */}
           <View style={{ flex: 1 }}>
             <Animated.ScrollView
               horizontal
@@ -183,7 +152,7 @@ const PeakDemand: React.FC = () => {
                 { useNativeDriver: false }
               )}
             >
-              <View style={{ width: chartWidth }}>
+              <View style={{ width: chartWidth, marginLeft: -20}}>
                 <LineChart
                   data={data}
                   width={chartWidth}
@@ -203,19 +172,16 @@ const PeakDemand: React.FC = () => {
                       stroke: '#1C7ED6',
                     },
                     propsForBackgroundLines: {
-                      strokeWidth: 0,
+                      strokeWidth: 1,
+                      stroke: '#e3e3e3',
                     },
                   }}
                   verticalLabelRotation={0}
-                  yLabelsOffset={10}
-                  style={{
-                    marginTop: 8,
-                    borderRadius: 8,
-                  }}
                   withShadow={false}
                   bezier={false}
                   withVerticalLabels={true}
-                  withHorizontalLabels={false}
+                  withHorizontalLabels={true}
+                  withInnerLines={false}
                   onDataPointClick={({ value, x, y, index }) =>
                     setSelectedDot({ value, x, y, index })
                   }
@@ -245,7 +211,6 @@ const PeakDemand: React.FC = () => {
                 )}
               </View>
             </Animated.ScrollView>
-            {/* Animated custom scrollbar */}
             <View style={styles.scrollBarTrack}>
               <Animated.View
                 style={[
@@ -259,15 +224,11 @@ const PeakDemand: React.FC = () => {
             </View>
           </View>
         </View>
-        {/* Legend for ceilings, side by side, with values below each legend */}
         <View style={styles.legendRow}>
           <View style={styles.legendItemWithValue}>
             <View style={styles.legendItem}>
               <View
-                style={[
-                  styles.legendColor,
-                  { backgroundColor: 'rgba(255, 0, 0, 1)' },
-                ]}
+                style={[styles.legendColor, { backgroundColor: 'rgba(255, 0, 0, 1)' }]}
               />
               <Text style={styles.legendLabel}>Upper Ceiling</Text>
             </View>
@@ -276,10 +237,7 @@ const PeakDemand: React.FC = () => {
           <View style={styles.legendItemWithValue}>
             <View style={styles.legendItem}>
               <View
-                style={[
-                  styles.legendColor,
-                  { backgroundColor: 'rgba(255, 165, 0, 1)' },
-                ]}
+                style={[styles.legendColor, { backgroundColor: 'rgba(255, 165, 0, 1)' }]}
               />
               <Text style={styles.legendLabel}>Lower Ceiling</Text>
             </View>
@@ -307,9 +265,9 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   headerRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 8,
   },
   heading: {
@@ -318,7 +276,7 @@ const styles = StyleSheet.create({
     marginBottom: 0,
   },
   downloadButton: {
-    backgroundColor: "#007bff",
+    backgroundColor: '#007bff',
     borderRadius: 6,
     paddingHorizontal: 12,
     paddingVertical: 2,
@@ -358,19 +316,19 @@ const styles = StyleSheet.create({
   },
   scrollBarTrack: {
     height: 4,
-    backgroundColor: "#eee",
+    backgroundColor: '#eee',
     borderRadius: 2,
     marginHorizontal: 2,
     marginBottom: 2,
-    width: "100%",
-    overflow: "hidden",
-    position: "relative",
+    width: '100%',
+    overflow: 'hidden',
+    position: 'relative',
   },
   scrollBarThumb: {
     height: 4,
-    backgroundColor: "#007bff",
+    backgroundColor: '#007bff',
     borderRadius: 2,
-    position: "absolute",
+    position: 'absolute',
     top: 0,
     left: 0,
   },
