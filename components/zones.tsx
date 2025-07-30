@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { View, StyleSheet, Text, Pressable, Animated, TouchableOpacity, Dimensions, ScrollView } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import { StackedBarChart } from 'react-native-chart-kit';
+import { StackedBarChart, BarChart } from 'react-native-chart-kit';
 import { Picker } from '@react-native-picker/picker';
 import axios from 'axios';
 
@@ -26,9 +26,46 @@ type ZonesProps = {
   meterId?: string | string[];
 };
 
+const screenWidth = Dimensions.get('window').width;
+const chartHeight = 260;
+const barWidth = 50;
+
+const barChartConfig = {
+  backgroundGradientFrom: "#ffffff",
+  backgroundGradientTo: "#ffffff",
+  decimalPlaces: 1,
+  color: () => "#2CAFFE",
+  labelColor: () => "#000",
+  style: {
+    borderRadius: 6,
+  },
+  propsForBackgroundLines: {
+    strokeWidth: 0,
+    stroke: "#ffffff",
+  },
+  fillShadowGradient: "#2CAFFE",
+  fillShadowGradientOpacity: 1,
+};
+
+type ChartData = 
+  | {
+      type: 'stacked';
+      labels: string[];
+      legend: string[];
+      data: number[][];
+      barColors: string[];
+    }
+  | {
+      type: 'bar';
+      labels: string[];
+      datasets: { data: number[] }[];
+      zoneName: string;
+    };
+
 export default function Zones({ startDate, endDate, meterId }: ZonesProps) {
   const [selectedUnit, setSelectedUnit] = useState<'kVAh' | 'kWh'>('kVAh');
   const animation = useRef(new Animated.Value(0)).current;
+  const scrollX = useRef(new Animated.Value(0)).current;
 
   type ZoneDataItem = {
     zoneId: number;
@@ -41,7 +78,6 @@ export default function Zones({ startDate, endDate, meterId }: ZonesProps) {
   const [selectedView, setSelectedView] = useState<'all' | 'single'>('all');
   const [selectedZone, setSelectedZone] = useState('1');
 
-  // Fix: Always respond to meterId changes, set to 'all' if not present
   useEffect(() => {
     if (meterId) {
       setSelectedView('single');
@@ -142,7 +178,7 @@ export default function Zones({ startDate, endDate, meterId }: ZonesProps) {
     i.toString().padStart(2, '0')
   );
 
-  const generateChartData = () => {
+  const generateChartData = (): ChartData => {
     if (selectedView === 'all') {
       const data = hourlyLabels.map((label, hourIndex) =>
         zoneMetadata.map((zone) => {
@@ -156,6 +192,7 @@ export default function Zones({ startDate, endDate, meterId }: ZonesProps) {
       );
 
       return {
+        type: 'stacked',
         labels: hourlyLabels,
         legend: zoneMetadata.map(zone => zone.name),
         data: data,
@@ -165,7 +202,6 @@ export default function Zones({ startDate, endDate, meterId }: ZonesProps) {
         ],
       };
     } else {
-      // Always use #2CAFFE for the selected zone bar color
       const selectedZoneId = parseInt(selectedZone);
       const zoneDataItem = zoneData.find(item => item.zoneId === selectedZoneId);
 
@@ -174,21 +210,32 @@ export default function Zones({ startDate, endDate, meterId }: ZonesProps) {
           const hourStr = item.hour.split(' ')[1]?.split(':')[0];
           return parseInt(hourStr) === hourIndex;
         });
-        return [hourData?.value || 0];
+        return hourData?.value || 0;
       });
 
       return {
+        type: 'bar',
         labels: hourlyLabels,
-        legend: [zoneDataItem?.zoneName || ''],
-        data: data,
-        barColors: ['#2CAFFE'],
+        datasets: [{ data }],
+        zoneName: zoneDataItem?.zoneName || '',
       };
     }
   };
 
   const chartData = generateChartData();
-  const screenWidth = Dimensions.get('window').width;
-  const chartWidth = screenWidth * 2.2;
+  const dynamicChartWidth = Math.max(
+    hourlyLabels.length * barWidth + 60,
+    screenWidth
+  );
+
+  const thumbWidth = Math.max((screenWidth / dynamicChartWidth) * screenWidth, 30);
+  const maxScroll = Math.max(dynamicChartWidth - screenWidth, 0);
+  const maxThumbTravel = Math.max(screenWidth - thumbWidth, 0);
+  const thumbTranslateX = scrollX.interpolate({
+    inputRange: [0, maxScroll || 1],
+    outputRange: [0, maxThumbTravel || 0],
+    extrapolate: "clamp",
+  });
 
   return (
     <View>
@@ -248,15 +295,24 @@ export default function Zones({ startDate, endDate, meterId }: ZonesProps) {
       </View>
 
       <View style={styles.chartContainer}>
-        <Text style={styles.chartTitle}>Hourly Consumption</Text>
+        <Text style={styles.chartTitle}>
+          {selectedView === 'single' && chartData.type === 'bar' 
+            ? `${chartData.zoneName} Hourly Consumption` 
+            : 'Hourly Consumption'}
+        </Text>
         <View style={styles.scrollContainer}>
-          {selectedView === 'all' ? (
+          {selectedView === 'all' && chartData.type === 'stacked' ? (
             <>
               <ScrollView horizontal showsHorizontalScrollIndicator>
                 <View style={{ marginLeft: -20 }}>
                   <StackedBarChart
-                    data={chartData}
-                    width={chartWidth}
+                    data={{
+                      labels: chartData.labels,
+                      legend: chartData.legend,
+                      data: chartData.data,
+                      barColors: chartData.barColors,
+                    }}
+                    width={screenWidth * 2.2}
                     height={220}
                     chartConfig={{
                       backgroundGradientFrom: '#fff',
@@ -272,13 +328,18 @@ export default function Zones({ startDate, endDate, meterId }: ZonesProps) {
                         alignmentBaseline: 'central',
                       },
                       propsForBackgroundLines: { strokeWidth: 0},
-                      barPercentage: 0.7,                      
+                      barPercentage: 0.9,
                     }}
                     hideLegend
                     fromZero
                     withHorizontalLabels
                     withVerticalLabels 
                     segments={3}
+                    style={{
+                      marginVertical: 8,
+                      marginRight: 20,
+                      paddingLeft: 20, // Added padding to shift bars to the right
+                    }}
                   />
                 </View>
               </ScrollView>
@@ -292,38 +353,51 @@ export default function Zones({ startDate, endDate, meterId }: ZonesProps) {
                 ))}
               </View>
             </>
-          ) : (
+          ) : selectedView === 'single' && chartData.type === 'bar' ? (
             <>
-              <ScrollView horizontal showsHorizontalScrollIndicator>
-                <View style={{ marginLeft: -20 }}>
-                  <StackedBarChart
-                    data={chartData}
-                    width={chartWidth}
-                    height={220}
-                    chartConfig={{
-                      backgroundGradientFrom: '#fff',
-                      backgroundGradientTo: '#fff',
-                      decimalPlaces: 0,
-                      formatYLabel: (y) => parseInt(y).toString(),
-                      color: () => '#2CAFFE',
-                      labelColor: (opacity = 1) => `rgba(0,0,0,${opacity})`,
-                      style: { borderRadius: 8 },
-                      propsForLabels: {
-                        fontSize: 10,
-                        textAnchor: 'middle',
-                        alignmentBaseline: 'central',
-                      },
-                      propsForBackgroundLines: { strokeWidth: 0},
-                      barPercentage: 0.7,
+              <Animated.ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{ minWidth: dynamicChartWidth }}
+                scrollEventThrottle={16}
+                onScroll={Animated.event(
+                  [{ nativeEvent: { contentOffset: { x: scrollX } } }],
+                  { useNativeDriver: false }
+                )}
+                style={{ marginBottom: 10 }}
+              >
+                <View style={{ marginLeft: -40 }}>
+                  <BarChart
+                    data={{
+                      labels: chartData.labels,
+                      datasets: chartData.datasets,
                     }}
-                    hideLegend
+                    width={dynamicChartWidth}
+                    height={chartHeight}
+                    yAxisLabel=""
+                    yAxisSuffix=""
+                    withVerticalLabels={true}
+                    withHorizontalLabels={true}
+                    showValuesOnTopOfBars={true}
+                    yLabelsOffset={-1}
+                    chartConfig={barChartConfig}
                     fromZero
-                    withHorizontalLabels
-                    withVerticalLabels
-                    segments={3}
+                    style={{ borderRadius: 6 }}
                   />
                 </View>
-              </ScrollView>
+              </Animated.ScrollView>
+
+              <View style={styles.scrollBarTrack}>
+                <Animated.View
+                  style={[
+                    styles.scrollBarThumb,
+                    {
+                      width: thumbWidth,
+                      transform: [{ translateX: thumbTranslateX }],
+                    },
+                  ]}
+                />
+              </View>
 
               <View style={styles.pickerContainer}>
                 <Picker
@@ -341,7 +415,7 @@ export default function Zones({ startDate, endDate, meterId }: ZonesProps) {
                 </Picker>
               </View>
             </>
-          )}
+          ) : null}
         </View>
       </View>
     </View>
@@ -466,5 +540,23 @@ const styles = StyleSheet.create({
     height: 50,
     width: '100%',
     color: '#333',
+  },
+  scrollBarTrack: {
+    height: 4,
+    backgroundColor: '#eee',
+    borderRadius: 2,
+    marginHorizontal: 2,
+    marginBottom: 2,
+    width: '100%',
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  scrollBarThumb: {
+    height: 4,
+    backgroundColor: '#007bff',
+    borderRadius: 2,
+    position: 'absolute',
+    top: 0,
+    left: 0,
   },
 });

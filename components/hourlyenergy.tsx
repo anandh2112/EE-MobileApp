@@ -12,22 +12,24 @@ import { Feather } from "@expo/vector-icons";
 import axios from "axios";
 
 const screenWidth = Dimensions.get("window").width;
-const chartWidth = 1200;
 const chartHeight = 260;
+const barWidth = 50; // Adjust bar width for uniform spacing
 
 const chartConfig = {
   backgroundGradientFrom: "#ffffff",
   backgroundGradientTo: "#ffffff",
   decimalPlaces: 1,
-  color: () => `#007bff`,
-  labelColor: () => `#000`,
+  color: () => "#2CAFFE",
+  labelColor: () => "#000",
   style: {
     borderRadius: 6,
   },
   propsForBackgroundLines: {
-    strokeWidth: 0.5,
-    stroke: "#e3e3e3",
+    strokeWidth: 0,
+    stroke: "#ffffff",
   },
+  fillShadowGradient: "#2CAFFE",
+  fillShadowGradientOpacity: 1,
 };
 
 type MetricKey = "kVAh" | "kWh" | "INR";
@@ -41,8 +43,11 @@ export default function HourlyEnergy({
   startDateTime,
   endDateTime,
 }: HourlyEnergyProps) {
-  const [energyData, setEnergyData] = useState<number[]>(Array(24).fill(0));
+  const [energyData, setEnergyData] = useState<number[]>([]);
+  const [xAxisLabels, setXAxisLabels] = useState<string[]>([]);
   const [selectedMetric, setSelectedMetric] = useState<MetricKey>("kVAh");
+
+  const scrollX = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     const fetchData = async () => {
@@ -60,25 +65,39 @@ export default function HourlyEnergy({
         );
 
         const rawData = response.data?.consumptionData || {};
-        const filledData = Array(24).fill(0);
-        Object.entries(rawData).forEach(([timestamp, value]) => {
-          const hour = new Date(timestamp).getHours();
-          filledData[hour] = parseFloat(value as string) || 0;
-        });
+        const sortedEntries = Object.entries(rawData)
+          .map(([timestamp, value]) => ({
+            hour: new Date(timestamp).getHours(),
+            value: parseFloat(value as string) || 0,
+            timestamp,
+          }))
+          .sort(
+            (a, b) =>
+              new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+          );
 
-        setEnergyData(filledData);
+        const labels = sortedEntries.map((entry) => entry.hour.toString());
+        const data = sortedEntries.map((entry) => entry.value);
+
+        setXAxisLabels(labels);
+        setEnergyData(data);
       } catch (error) {
         console.error("Error fetching energy data:", error);
-        setEnergyData(Array(24).fill(0));
+        setEnergyData([]);
+        setXAxisLabels([]);
       }
     };
 
     if (startDateTime && endDateTime) fetchData();
   }, [startDateTime, endDateTime, selectedMetric]);
 
-  const scrollX = useRef(new Animated.Value(0)).current;
-  const thumbWidth = Math.max((screenWidth / chartWidth) * screenWidth, 30);
-  const maxScroll = Math.max(chartWidth - screenWidth, 0);
+  const dynamicChartWidth = Math.max(
+    energyData.length * barWidth + 60,
+    screenWidth
+  );
+
+  const thumbWidth = Math.max((screenWidth / dynamicChartWidth) * screenWidth, 30);
+  const maxScroll = Math.max(dynamicChartWidth - screenWidth, 0);
   const maxThumbTravel = Math.max(screenWidth - thumbWidth, 0);
   const thumbTranslateX = scrollX.interpolate({
     inputRange: [0, maxScroll || 1],
@@ -95,7 +114,6 @@ export default function HourlyEnergy({
   return (
     <View style={styles.container}>
       <View style={styles.card}>
-        {/* Header */}
         <View style={styles.headerRow}>
           <Text style={styles.heading}>Hourly Energy Consumption</Text>
           <TouchableOpacity style={styles.downloadButton}>
@@ -103,7 +121,6 @@ export default function HourlyEnergy({
           </TouchableOpacity>
         </View>
 
-        {/* Toggle Buttons */}
         <View style={styles.toggleContainer}>
           {metricOptions.map(({ key, label }) => (
             <TouchableOpacity
@@ -126,49 +143,58 @@ export default function HourlyEnergy({
           ))}
         </View>
 
-        {/* Chart */}
-        <Animated.ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ minWidth: chartWidth }}
-          scrollEventThrottle={16}
-          onScroll={Animated.event(
-            [{ nativeEvent: { contentOffset: { x: scrollX } } }],
-            { useNativeDriver: false }
-          )}
-          style={{ marginBottom: 10 }}
-        >
-          <View style={{ marginLeft: -40 }}>
-            <BarChart
-              data={{
-                labels: Array.from({ length: 24 }, (_, i) => `${i}`),
-                datasets: [{ data: energyData }],
-              }}
-              width={chartWidth}
-              height={chartHeight}
-              yAxisLabel=""
-              yAxisSuffix=""
-              withVerticalLabels={true}
-              yLabelsOffset={-1} 
-              chartConfig={{ ...chartConfig, decimalPlaces: 0 }}
-              fromZero
-              style={{ borderRadius: 6 }}
-            />
-          </View>
-        </Animated.ScrollView>
+        {energyData.length > 0 ? (
+          <>
+            <Animated.ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ minWidth: dynamicChartWidth }}
+              scrollEventThrottle={16}
+              onScroll={Animated.event(
+                [{ nativeEvent: { contentOffset: { x: scrollX } } }],
+                { useNativeDriver: false }
+              )}
+              style={{ marginBottom: 10 }}
+            >
+              <View style={{ marginLeft: -40 }}>
+                <BarChart
+                  data={{
+                    labels: xAxisLabels,
+                    datasets: [{ data: energyData }],
+                  }}
+                  width={dynamicChartWidth}
+                  height={chartHeight}
+                  yAxisLabel=""
+                  yAxisSuffix=""
+                  withVerticalLabels={true}
+                  withHorizontalLabels={true}
+                  showValuesOnTopOfBars={true}
+                  yLabelsOffset={-1}
+                  chartConfig={{
+                    ...chartConfig,
+                    decimalPlaces: 0,
+                  }}
+                  fromZero
+                  style={{ borderRadius: 6 }}
+                />
+              </View>
+            </Animated.ScrollView>
 
-        {/* Scrollbar */}
-        <View style={styles.scrollBarTrack}>
-          <Animated.View
-            style={[
-              styles.scrollBarThumb,
-              {
-                width: thumbWidth,
-                transform: [{ translateX: thumbTranslateX }],
-              },
-            ]}
-          />
-        </View>
+            <View style={styles.scrollBarTrack}>
+              <Animated.View
+                style={[
+                  styles.scrollBarThumb,
+                  {
+                    width: thumbWidth,
+                    transform: [{ translateX: thumbTranslateX }],
+                  },
+                ]}
+              />
+            </View>
+          </>
+        ) : (
+          <Text style={styles.noDataText}>No data available</Text>
+        )}
       </View>
     </View>
   );
@@ -244,5 +270,10 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 0,
     left: 0,
+  },
+  noDataText: {
+    textAlign: "center",
+    padding: 20,
+    color: "#666",
   },
 });
