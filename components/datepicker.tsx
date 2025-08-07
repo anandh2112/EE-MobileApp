@@ -1,4 +1,3 @@
-// Datepicker.tsx
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -14,10 +13,9 @@ import {
   heightPercentageToDP as hp,
 } from 'react-native-responsive-screen';
 
-// NEW PROP TYPE
 interface DateRangeCardProps {
   onToggleChange?: (value: 'kVAh' | 'kWh') => void;
-  onDateChange?: (start: string, end: string) => void; // <-- ADD THIS
+  onDateChange?: (start: string, end: string) => void;
 }
 
 export default function DateRangeCard({ onToggleChange, onDateChange }: DateRangeCardProps) {
@@ -47,13 +45,11 @@ export default function DateRangeCard({ onToggleChange, onDateChange }: DateRang
   const [endDate, setEndDate] = useState(currentTime);
   const [pickerMode, setPickerMode] = useState<'start' | 'end' | null>(null);
 
-  // Format date to "YYYY-MM-DD HH-MM-SS"
   const formatDateTime = (date: Date) => {
     const pad = (n: number) => (n < 10 ? `0${n}` : n);
     return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}-${pad(date.getMinutes())}-${pad(date.getSeconds())}`;
   };
 
-  // NEW: Call onDateChange every time dates change
   useEffect(() => {
     if (onDateChange) {
       onDateChange(formatDateTime(startDate), formatDateTime(endDate));
@@ -62,8 +58,8 @@ export default function DateRangeCard({ onToggleChange, onDateChange }: DateRang
 
   return (
     <View style={styles.cardContainer}>
-      {/* Date Pickers */}
       <View style={styles.dateRow}>
+        {/* Start Date */}
         <View style={styles.dateInput}>
           <Text style={styles.sideLabel}>Start</Text>
           <Pressable onPress={() => setPickerMode('start')} style={styles.inputRow}>
@@ -78,14 +74,15 @@ export default function DateRangeCard({ onToggleChange, onDateChange }: DateRang
                 hour12: true,
               })}`}
             </Text>
-            <View style={{ paddingRight: 10 }}>
-              <Ionicons name="calendar-outline" size={18} color="#555" />
+            <View style={{ paddingRight: wp('2%') }}>
+              <Ionicons name="calendar-outline" size={wp('4.5%')} color="#555" />
             </View>
           </Pressable>
         </View>
 
+        {/* End Date */}
         <View style={styles.dateInput}>
-          <View style={{ paddingLeft: 15 }}>
+          <View style={{ paddingLeft: wp('3%') }}>
             <Text style={styles.sideLabel}>End</Text>
           </View>
           <Pressable onPress={() => setPickerMode('end')} style={styles.inputRow}>
@@ -100,7 +97,7 @@ export default function DateRangeCard({ onToggleChange, onDateChange }: DateRang
                 hour12: true,
               })}`}
             </Text>
-            <Ionicons name="calendar-outline" size={18} color="#555" />
+            <Ionicons name="calendar-outline" size={wp('4.5%')} color="#555" />
           </Pressable>
         </View>
       </View>
@@ -123,34 +120,33 @@ export default function DateRangeCard({ onToggleChange, onDateChange }: DateRang
   );
 }
 
-
 const styles = StyleSheet.create({
   cardContainer: {
     marginHorizontal: wp('3%'),
     backgroundColor: '#fff',
-    borderRadius: 4,
+    borderRadius: wp('2%'),
     borderWidth: 1,
     borderColor: '#ddd',
     elevation: 1,
-    paddingHorizontal: wp('2%'),
-    marginBottom: hp('1%'),
+    paddingHorizontal: wp('1%'),
+    marginBottom: hp('1.5%'),
   },
   dateRow: {
-    padding: 2,
+    padding: wp('1%'),
     flexDirection: 'row',
     justifyContent: 'space-between',
-    gap: 0,
   },
   dateInput: {
     flex: 1,
-    paddingBottom: 4,
+    paddingBottom: hp('0.5%'),
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: wp('1.5%'),
   },
   sideLabel: {
-    fontSize: 12,
+    fontSize: wp('3%'),
     color: '#666',
+    fontFamily: 'Poppins',
   },
   inputRow: {
     flexDirection: 'row',
@@ -159,8 +155,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   dateText: {
-    fontSize: 11,
+    fontSize: wp('2.8%'),
     fontWeight: '600',
     color: '#1a1a1a',
+    fontFamily: 'Poppins',
   },
 });

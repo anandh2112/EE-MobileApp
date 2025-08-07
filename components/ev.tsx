@@ -1,6 +1,16 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  Image,
+  TouchableOpacity,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import {
+  widthPercentageToDP as wp,
+  heightPercentageToDP as hp,
+} from 'react-native-responsive-screen';
 
 const statusStyles = {
   Active: { color: '#22C55E', label: 'Active' },
@@ -36,7 +46,7 @@ export default function EVChargers() {
 
         {/* Top Row Cards */}
         <View style={styles.topRow}>
-          {['No. of Chargers Used', 'Total Sessions Today', 'Total Energy Used'].map((label, i) => (
+          {['Chargers Used', 'Sessions Today', 'Energy Used'].map((label, i) => (
             <View key={i} style={styles.subCard}>
               <Text style={styles.subLabel}>{label}</Text>
               <Text style={styles.subValue}>
@@ -46,7 +56,7 @@ export default function EVChargers() {
           ))}
         </View>
 
-        {/* Bottom Card with Arrows INSIDE */}
+        {/* Bottom Card */}
         <View style={styles.bottomCard}>
           <View style={styles.bottomRow}>
             {/* Left Arrow */}
@@ -55,12 +65,16 @@ export default function EVChargers() {
               disabled={index === 0}
               style={styles.arrowContainer}
             >
-              <Ionicons name="chevron-back" size={28} color={index === 0 ? '#ccc' : '#000'} />
+              <Ionicons
+                name="chevron-back"
+                size={wp('7%')}
+                color={index === 0 ? '#ccc' : '#000'}
+              />
             </TouchableOpacity>
 
-            {/* Main Card Content */}
+            {/* Card Content */}
             <View style={styles.bottomContent}>
-              {/* Left Half: Image and Status */}
+              {/* Left Half */}
               <View style={styles.leftHalf}>
                 <Image
                   source={require('../assets/images-user/ev.png')}
@@ -72,7 +86,8 @@ export default function EVChargers() {
                   <Text style={styles.statusText}>{status.label}</Text>
                 </View>
               </View>
-              {/* Right Half: Location, Capacity, Consumption */}
+
+              {/* Right Half */}
               <View style={styles.rightHalfNew}>
                 <Text style={styles.locationName}>{charger.location}</Text>
                 <View style={styles.subSubRow}>
@@ -102,12 +117,16 @@ export default function EVChargers() {
               disabled={index === chargers.length - 1}
               style={styles.arrowContainer}
             >
-              <Ionicons name="chevron-forward" size={28} color={index === chargers.length - 1 ? '#ccc' : '#000'} />
+              <Ionicons
+                name="chevron-forward"
+                size={wp('7%')}
+                color={index === chargers.length - 1 ? '#ccc' : '#000'}
+              />
             </TouchableOpacity>
           </View>
         </View>
 
-        {/* Overlay Section Not Available */}
+        {/* Overlay */}
         <View style={styles.overlay}>
           <Text style={styles.overlayText}>Section Not Available</Text>
         </View>
@@ -118,52 +137,53 @@ export default function EVChargers() {
 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: 12,
-    paddingBottom: 14,
+    paddingHorizontal: wp('3%'),
+    paddingBottom: hp('2%'),
   },
   card: {
     backgroundColor: '#fff',
-    padding: 12,
-    borderRadius: 12,
+    padding: wp('3%'),
+    borderRadius: wp('3%'),
     elevation: 1,
     borderWidth: 1,
     borderColor: '#ddd',
-    marginTop: 16,
+    marginTop: hp('2%'),
     position: 'relative',
   },
   heading: {
-    fontSize: 16,
+    fontSize: wp('4.5%'),
     fontWeight: 'bold',
-    marginBottom: 12,
+    marginBottom: hp('1.5%'),
+    fontFamily: 'Poppins',
   },
   topRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 12,
+    marginBottom: hp('1.5%'),
   },
   subCard: {
     flex: 1,
     backgroundColor: '#f9fafb',
-    marginHorizontal: 4,
-    padding: 8,
-    borderRadius: 8,
+    marginHorizontal: wp('1%'),
+    padding: wp('2.5%'),
+    borderRadius: wp('2%'),
     alignItems: 'center',
   },
   subLabel: {
-    fontSize: 12,
+    fontSize: wp('3%'),
     color: '#555',
+    fontFamily: 'Poppins',
   },
   subValue: {
-    fontSize: 16,
+    fontSize: wp('4%'),
     fontWeight: 'bold',
+    fontFamily: 'Poppins',
   },
-  // BOTTOM CARD
   bottomCard: {
     backgroundColor: '#f9fafb',
-    padding: 10,
-    borderRadius: 10,
-    marginHorizontal: 0,
-    marginTop: 10,
+    padding: wp('3%'),
+    borderRadius: wp('2.5%'),
+    marginTop: hp('1.2%'),
   },
   bottomRow: {
     flexDirection: 'row',
@@ -171,67 +191,71 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   arrowContainer: {
-    paddingHorizontal: 6,
-    paddingVertical: 12,
+    paddingHorizontal: wp('2%'),
+    paddingVertical: hp('1.5%'),
   },
   bottomContent: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    marginHorizontal: 2,
+    marginHorizontal: wp('1%'),
   },
   leftHalf: {
     alignItems: 'center',
     justifyContent: 'flex-start',
-    width: 95,
+    width: wp('24%'),
   },
   image: {
-    width: 70,
-    height: 70,
-    marginBottom: 5,
+    width: wp('18%'),
+    height: wp('18%'),
+    marginBottom: hp('0.5%'),
   },
   statusRowLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 2,
+    marginTop: hp('0.5%'),
   },
   statusDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    marginRight: 6,
+    width: wp('2.5%'),
+    height: wp('2.5%'),
+    borderRadius: wp('1.25%'),
+    marginRight: wp('1.5%'),
   },
   statusText: {
     fontWeight: '500',
-    fontSize: 13,
+    fontSize: wp('3.3%'),
+    fontFamily: 'Poppins',
   },
   rightHalfNew: {
     flex: 1,
     justifyContent: 'center',
-    marginLeft: 12,
+    marginLeft: wp('3%'),
   },
   locationName: {
     fontWeight: 'bold',
-    fontSize: 15,
-    marginBottom: 8,
+    fontSize: wp('3.5%'),
+    marginBottom: hp('1%'),
     color: '#222',
+    fontFamily: 'Poppins',
   },
   subSubRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 2,
+    marginVertical: hp('0.4%'),
   },
   smallImage: {
-    width: 20,
-    height: 20,
-    marginRight: 6,
+    width: wp('5%'),
+    height: wp('5%'),
+    marginRight: wp('1.5%'),
   },
   infoText: {
-    fontSize: 12,
+    fontSize: wp('3.2%'),
+    fontFamily: 'Poppins',
   },
   boldValue: {
-    fontSize: 14,
+    fontSize: wp('3.5%'),
     fontWeight: 'bold',
+    fontFamily: 'Poppins',
   },
   overlay: {
     position: 'absolute',
@@ -240,17 +264,18 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     backgroundColor: 'rgba(0,0,0,0.6)',
-    borderRadius: 12,
+    borderRadius: wp('3%'),
     justifyContent: 'center',
     alignItems: 'center',
   },
   overlayText: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: wp('4%'),
     fontWeight: 'bold',
     backgroundColor: '#333',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
+    paddingHorizontal: wp('4%'),
+    paddingVertical: hp('1%'),
+    borderRadius: wp('2%'),
+    fontFamily: 'Poppins',
   },
 });

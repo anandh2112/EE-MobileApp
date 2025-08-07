@@ -8,6 +8,10 @@ import {
 } from 'react-native';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import { Ionicons } from '@expo/vector-icons';
+import {
+  widthPercentageToDP as wp,
+  heightPercentageToDP as hp,
+} from 'react-native-responsive-screen';
 
 interface AnCompProps {
   onToggleChange?: (value: 'kVAh' | 'kWh') => void;
@@ -75,14 +79,14 @@ export default function AnComp({ onToggleChange, onDateChange }: AnCompProps) {
                 hour12: true,
               })}`}
             </Text>
-            <View style={{ paddingRight: 10 }}>
-              <Ionicons name="calendar-outline" size={18} color="#555" />
+            <View style={{ paddingRight: wp('2.5%') }}>
+              <Ionicons name="calendar-outline" size={wp('4.5%')} color="#555" />
             </View>
           </Pressable>
         </View>
 
         <View style={styles.dateInput}>
-          <View style={{ paddingLeft: 15 }}>
+          <View style={{ paddingLeft: wp('3%') }}>
             <Text style={styles.sideLabel}>End</Text>
           </View>
           <Pressable onPress={() => setPickerMode('end')} style={styles.inputRow}>
@@ -97,7 +101,7 @@ export default function AnComp({ onToggleChange, onDateChange }: AnCompProps) {
                 hour12: true,
               })}`}
             </Text>
-            <Ionicons name="calendar-outline" size={18} color="#555" />
+            <Ionicons name="calendar-outline" size={wp('4.5%')} color="#555" />
           </Pressable>
         </View>
       </View>
@@ -136,22 +140,22 @@ export default function AnComp({ onToggleChange, onDateChange }: AnCompProps) {
 
 const styles = StyleSheet.create({
   dateRow: {
-    padding: 2,
+    padding: hp('0.5%'),
     flexDirection: 'row',
     justifyContent: 'space-between',
-    gap: 0,
+    gap: wp('1%'),
   },
   dateInput: {
     flex: 1,
     borderBottomWidth: 1,
     borderBottomColor: '#ccc',
-    paddingBottom: 4,
+    paddingBottom: hp('0.6%'),
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: wp('1.5%'),
   },
   sideLabel: {
-    fontSize: 12,
+    fontSize: wp('3%'),
     color: '#666',
   },
   inputRow: {
@@ -161,7 +165,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   dateText: {
-    fontSize: 11,
+    fontSize: wp('2.8%'),
     fontWeight: '600',
     color: '#1a1a1a',
   },

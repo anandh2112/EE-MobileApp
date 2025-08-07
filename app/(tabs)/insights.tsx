@@ -5,9 +5,13 @@ import {
   StyleSheet,
   Pressable,
   Animated,
-  Dimensions,
   LayoutChangeEvent,
 } from 'react-native';
+import {
+  widthPercentageToDP as wp,
+  heightPercentageToDP as hp,
+} from 'react-native-responsive-screen';
+
 import TopBar from '@/components/topbar';
 import Insights1 from '@/components/insights-1';
 
@@ -41,7 +45,6 @@ export default function InsightsTabs() {
   const onTabLayout = (event: LayoutChangeEvent, index: number) => {
     const { x, width } = event.nativeEvent.layout;
     tabLayouts[index] = { x, width };
-
 
     if (index === activeTab) {
       underlineX.setValue(x);
@@ -88,10 +91,14 @@ export default function InsightsTabs() {
         </View>
 
         {/* Tab content */}
-        <View style={{ flex: 1, paddingTop: 12 }}>
+        <View style={{ flex: 1, paddingTop: hp('1.5%') }}>
           {activeTab === 0 && <Insights1 />}
-          {activeTab === 1 && <Text style={styles.placeholder}>Market Trends coming soon...</Text>}
-          {activeTab === 2 && <Text style={styles.placeholder}>Eco Tips coming soon...</Text>}
+          {activeTab === 1 && (
+            <Text style={styles.placeholder}>Market Trends coming soon...</Text>
+          )}
+          {activeTab === 2 && (
+            <Text style={styles.placeholder}>Eco Tips coming soon...</Text>
+          )}
         </View>
       </View>
     </View>
@@ -104,16 +111,17 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
   },
   container: {
-    paddingHorizontal: 16,
+    paddingHorizontal: wp('4%'),
     paddingTop: 0,
     flex: 1,
+    backgroundColor: '#fff',
   },
   heading: {
-    fontSize: 22,
+    fontSize: wp('5.5%'),
     fontWeight: 'bold',
     color: '#000',
-    marginBottom: 10,
-    marginTop: 12,
+    marginBottom: hp('1%'),
+    marginTop: hp('1.5%'),
   },
   tabContainer: {
     flexDirection: 'row',
@@ -124,10 +132,10 @@ const styles = StyleSheet.create({
   tab: {
     flex: 1,
     alignItems: 'center',
-    paddingVertical: 10,
+    paddingVertical: hp('1.2%'),
   },
   tabText: {
-    fontSize: 14,
+    fontSize: wp('3.6%'),
     fontWeight: '500',
     color: '#777',
   },
@@ -142,9 +150,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#00A86B',
   },
   placeholder: {
-    paddingTop: 24,
+    paddingTop: hp('3%'),
     textAlign: 'center',
     color: '#888',
-    fontSize: 14,
+    fontSize: wp('3.5%'),
   },
 });

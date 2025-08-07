@@ -11,6 +11,10 @@ import {
 import { Feather } from '@expo/vector-icons';
 import axios from 'axios';
 import moment from 'moment-timezone';
+import {
+  widthPercentageToDP as wp,
+  heightPercentageToDP as hp,
+} from 'react-native-responsive-screen';
 
 type ZoneData = {
   zone: number;
@@ -37,22 +41,22 @@ export default function ELog({ startDate, endDate }: ELogProps) {
   const [zones, setZones] = useState<ZoneData[]>([]);
   const [zoneToggle] = useState<'all' | 'single'>('all'); // fixed to 'all' as disabled
 
-const zoneNames = [
-  { zone: 1, name: 'PLATING', subName: 'C-49' },
-  { zone: 2, name: 'DIE CASTING + CHINA BUFFING + CNC', subName: 'C-50' },
-  { zone: 3, name: 'SCOTCH BUFFING', subName: 'C-50' },
-  { zone: 4, name: 'BUFFING', subName: 'C-49' },
-  { zone: 5, name: 'SPRAY+EPL-I', subName: 'C-50' },
-  { zone: 6, name: 'SPRAY+ EPL-II', subName: 'C-49' },
-  { zone: 7, name: 'RUMBLE', subName: 'C-50' },
-  { zone: 8, name: 'AIR COMPRESSOR', subName: 'C-49' },
-  { zone: 9, name: 'TERRACE', subName: 'C-49' },
-  { zone: 10, name: 'TOOL ROOM', subName: 'C-50' },
-  { zone: 11, name: 'ADMIN BLOCK', subName: 'C-50' },
-  { zone: 12, name: 'TRANSFORMER', subName: '' },
-  { zone: 13, name: 'DIESEL GENERATOR - 1', subName: '' },
-  { zone: 14, name: 'DIESEL GENERATOR - 2', subName: '' },
-];
+  const zoneNames = [
+    { zone: 1, name: 'PLATING', subName: 'C-49' },
+    { zone: 2, name: 'DIE CASTING + CHINA BUFFING + CNC', subName: 'C-50' },
+    { zone: 3, name: 'SCOTCH BUFFING', subName: 'C-50' },
+    { zone: 4, name: 'BUFFING', subName: 'C-49' },
+    { zone: 5, name: 'SPRAY+EPL-I', subName: 'C-50' },
+    { zone: 6, name: 'SPRAY+ EPL-II', subName: 'C-49' },
+    { zone: 7, name: 'RUMBLE', subName: 'C-50' },
+    { zone: 8, name: 'AIR COMPRESSOR', subName: 'C-49' },
+    { zone: 9, name: 'TERRACE', subName: 'C-49' },
+    { zone: 10, name: 'TOOL ROOM', subName: 'C-50' },
+    { zone: 11, name: 'ADMIN BLOCK', subName: 'C-50' },
+    { zone: 12, name: 'TRANSFORMER', subName: '' },
+    { zone: 13, name: 'DIESEL GENERATOR - 1', subName: '' },
+    { zone: 14, name: 'DIESEL GENERATOR - 2', subName: '' },
+  ];
 
   useEffect(() => {
     const fetchData = async () => {
@@ -77,11 +81,11 @@ const zoneNames = [
     fetchData();
   }, [startDate, endDate]); // Add props to dependency array
 
-  const toggleButtonWidth = 60;
-  const toggleButtonHeight = 18;
-  const toggleCircleWidth = 28;
-  const toggleCircleHeight = 18;
-  const toggleCircleRadius = 14;
+  const toggleButtonWidth = wp('15%');
+  const toggleButtonHeight = hp('2.2%');
+  const toggleCircleWidth = wp('7%');
+  const toggleCircleHeight = hp('2.2%');
+  const toggleCircleRadius = wp('3.5%');
 
   const translateX = animation.interpolate({
     inputRange: [0, 1],
@@ -130,7 +134,7 @@ const zoneNames = [
             style={[
               styles.zoneButton,
               zoneToggle === 'all' && styles.zoneButtonActive,
-              { borderTopLeftRadius: 8, borderBottomLeftRadius: 8 },
+              { borderTopLeftRadius: wp('2%'), borderBottomLeftRadius: wp('2%') },
             ]}
             disabled
           >
@@ -147,7 +151,7 @@ const zoneNames = [
             style={[
               styles.zoneButton,
               zoneToggle === 'single' && styles.zoneButtonActive,
-              { borderTopRightRadius: 8, borderBottomRightRadius: 8 },
+              { borderTopRightRadius: wp('2%'), borderBottomRightRadius: wp('2%') },
             ]}
             disabled
           >
@@ -163,12 +167,12 @@ const zoneNames = [
         </View>
 
         <TouchableOpacity style={styles.downloadButton}>
-          <Feather name="download" size={16} color="#fff" />
+          <Feather name="download" size={wp('4%')} color="#fff" />
         </TouchableOpacity>
       </View>
 
       {/* SCROLLABLE ZONE CARDS */}
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 24 }}>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: hp('3%') }}>
         {zones.map((zone, index) => {
           const startValue = zone.min[selectedUnit];
           const endValue = zone.max[selectedUnit];
@@ -255,8 +259,8 @@ const zoneNames = [
 const styles = StyleSheet.create({
   card: {
     backgroundColor: '#fff',
-    marginTop: 8,
-    borderRadius: 10,
+    marginTop: hp('1%'),
+    borderRadius: wp('2.5%'),
     borderWidth: 1,
     borderColor: '#ccc',
   },
@@ -267,24 +271,26 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     backgroundColor: '#08223B',
-    width: '75%',
-    paddingVertical: 6,
-    borderBottomRightRadius: 18,
-    borderBottomLeftRadius: 18,
+    width: wp('75%'),
+    paddingVertical: hp('0.7%'),
+    borderBottomRightRadius: wp('4.5%'),
+    borderBottomLeftRadius: wp('4.5%'),
     alignItems: 'center',
-    gap: 8,
+    gap: wp('2%'),
   },
   heading: {
     color: '#fff',
-    fontSize: 12,
+    fontSize: wp('3%'),
     fontWeight: 'bold',
+    fontFamily: 'Poppins',
   },
   subHeading: {
     color: '#ccc',
-    fontSize: 10,
+    fontSize: wp('2.5%'),
+    fontFamily: 'Poppins',
   },
   table: {
-    padding: 2,
+    padding: wp('0.5%'),
     flexDirection: 'row',
   },
   column: {
@@ -299,24 +305,28 @@ const styles = StyleSheet.create({
   separator: {
     height: 1,
     backgroundColor: '#ccc',
-    marginVertical: 4,
+    marginVertical: hp('0.5%'),
   },
   label: {
-    fontSize: 10,
+    fontSize: wp('2.5%'),
     color: '#777',
+    fontFamily: 'Poppins',
   },
   value: {
-    fontSize: 10,
+    fontSize: wp('2.5%'),
     color: '#777',
+    fontFamily: 'Poppins',
   },
   kwhValue: {
-    fontSize: 14,
+    fontSize: wp('3.5%'),
     color: '#000',
     fontWeight: 'bold',
+    fontFamily: 'Poppins',
   },
   kwhUnit: {
     color: 'red',
-    fontSize: 12,
+    fontSize: wp('3%'),
+    fontFamily: 'Poppins',
   },
   consumptionColumn: {
     flex: 1,
@@ -327,41 +337,44 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   consumedValue: {
-    fontSize: 18,
+    fontSize: wp('4.5%'),
     fontWeight: 'bold',
     color: '#000',
+    fontFamily: 'Poppins',
   },
   consumptionLabel: {
-    fontSize: 12,
+    fontSize: wp('3%'),
     color: '#888',
+    fontFamily: 'Poppins',
   },
   bottomRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 8,
-    marginBottom: 8,
-    gap: 10,
+    marginTop: hp('1%'),
+    marginBottom: hp('1%'),
+    gap: wp('2.5%'),
   },
   downloadButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 4,
-    paddingHorizontal: 12,
+    paddingVertical: hp('0.5%'),
+    paddingHorizontal: wp('3%'),
     backgroundColor: '#59CD73',
-    borderRadius: 8,
+    borderRadius: wp('2%'),
   },
   toggleWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: wp('1.5%'),
   },
   toggleLabel: {
-    fontSize: 12,
+    fontSize: wp('3%'),
     color: '#333',
+    fontFamily: 'Poppins',
   },
   toggleButton: {
-    borderRadius: 14,
+    borderRadius: wp('3.5%'),
     justifyContent: 'center',
     backgroundColor: '#ccc',
     position: 'relative',
@@ -376,7 +389,7 @@ const styles = StyleSheet.create({
   zoneToggleWrapper: {
     flexDirection: 'row',
     backgroundColor: '#f2f2f2',
-    borderRadius: 8,
+    borderRadius: wp('2%'),
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: '#e0e0e0',
@@ -385,8 +398,8 @@ const styles = StyleSheet.create({
     opacity: 0.4,
   },
   zoneButton: {
-    paddingVertical: 3,
-    paddingHorizontal: 16,
+    paddingVertical: hp('0.4%'),
+    paddingHorizontal: wp('4%'),
     backgroundColor: '#fff',
   },
   zoneButtonActive: {
@@ -394,11 +407,13 @@ const styles = StyleSheet.create({
   },
   zoneButtonText: {
     color: '#212121',
-    fontSize: 12,
+    fontSize: wp('3%'),
     fontWeight: '500',
+    fontFamily: 'Poppins',
   },
   zoneButtonTextActive: {
     color: '#fff',
     fontWeight: 'bold',
+    fontFamily: 'Poppins',
   },
 });

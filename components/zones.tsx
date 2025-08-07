@@ -1,9 +1,14 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, StyleSheet, Text, Pressable, Animated, TouchableOpacity, Dimensions, ScrollView } from 'react-native';
+import { View, StyleSheet, Text, Pressable, Animated, TouchableOpacity, ScrollView } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { StackedBarChart, BarChart } from 'react-native-chart-kit';
 import { Picker } from '@react-native-picker/picker';
 import axios from 'axios';
+import { useLocalSearchParams } from 'expo-router';
+import {
+  widthPercentageToDP as wp,
+  heightPercentageToDP as hp,
+} from 'react-native-responsive-screen';
 
 const zoneMetadata = [
   { id: 1, name: 'PLATING', category: 'C-49' },
@@ -23,12 +28,11 @@ const zoneMetadata = [
 type ZonesProps = {
   startDate: string;
   endDate: string;
-  meterId?: string | string[];
+  meterId?: string | number | string[];
 };
 
-const screenWidth = Dimensions.get('window').width;
-const chartHeight = 260;
-const barWidth = 50;
+const chartHeight = hp('32%');
+const barWidth = wp('12%');
 
 const barChartConfig = {
   backgroundGradientFrom: "#ffffff",
@@ -37,7 +41,7 @@ const barChartConfig = {
   color: () => "#2CAFFE",
   labelColor: () => "#000",
   style: {
-    borderRadius: 6,
+    borderRadius: wp('1.5%'),
   },
   propsForBackgroundLines: {
     strokeWidth: 0,
@@ -63,6 +67,7 @@ type ChartData =
     };
 
 export default function Zones({ startDate, endDate, meterId }: ZonesProps) {
+  const params = useLocalSearchParams();
   const [selectedUnit, setSelectedUnit] = useState<'kVAh' | 'kWh'>('kVAh');
   const animation = useRef(new Animated.Value(0)).current;
   const scrollX = useRef(new Animated.Value(0)).current;
@@ -81,17 +86,18 @@ export default function Zones({ startDate, endDate, meterId }: ZonesProps) {
   useEffect(() => {
     if (meterId) {
       setSelectedView('single');
-      setSelectedZone(Array.isArray(meterId) ? meterId[0] : meterId.toString());
+      const id = Array.isArray(meterId) ? meterId[0] : meterId;
+      setSelectedZone(id.toString());
     } else {
       setSelectedView('all');
     }
-  }, [meterId]);
+  }, [meterId, params.meterId]);
 
-  const toggleButtonWidth = 60;
-  const toggleButtonHeight = 18;
-  const toggleCircleWidth = 28;
-  const toggleCircleHeight = 18;
-  const toggleCircleRadius = 14;
+  const toggleButtonWidth = wp('15%');
+  const toggleButtonHeight = hp('2.2%');
+  const toggleCircleWidth = wp('7%');
+  const toggleCircleHeight = hp('2.2%');
+  const toggleCircleRadius = wp('3.5%');
 
   useEffect(() => {
     const startDateTime = startDate;
@@ -204,33 +210,39 @@ export default function Zones({ startDate, endDate, meterId }: ZonesProps) {
     } else {
       const selectedZoneId = parseInt(selectedZone);
       const zoneDataItem = zoneData.find(item => item.zoneId === selectedZoneId);
+      const zoneMetadataItem = zoneMetadata.find(zone => zone.id === selectedZoneId);
 
-      const data = hourlyLabels.map((label, hourIndex) => {
-        const hourData = zoneDataItem?.data.find(item => {
-          const hourStr = item.hour.split(' ')[1]?.split(':')[0];
-          return parseInt(hourStr) === hourIndex;
-        });
-        return hourData?.value || 0;
-      });
+      const fallbackData = Array(24).fill(0);
+      const zoneName = zoneDataItem?.zoneName || zoneMetadataItem?.name || 'Unknown Zone';
+
+      const data = zoneDataItem 
+        ? hourlyLabels.map((label, hourIndex) => {
+            const hourData = zoneDataItem.data.find(item => {
+              const hourStr = item.hour.split(' ')[1]?.split(':')[0];
+              return parseInt(hourStr) === hourIndex;
+            });
+            return hourData?.value || 0;
+          })
+        : fallbackData;
 
       return {
         type: 'bar',
         labels: hourlyLabels,
         datasets: [{ data }],
-        zoneName: zoneDataItem?.zoneName || '',
+        zoneName: zoneName,
       };
     }
   };
 
   const chartData = generateChartData();
   const dynamicChartWidth = Math.max(
-    hourlyLabels.length * barWidth + 60,
-    screenWidth
+    hourlyLabels.length * barWidth + wp('15%'),
+    wp('100%')
   );
 
-  const thumbWidth = Math.max((screenWidth / dynamicChartWidth) * screenWidth, 30);
-  const maxScroll = Math.max(dynamicChartWidth - screenWidth, 0);
-  const maxThumbTravel = Math.max(screenWidth - thumbWidth, 0);
+  const thumbWidth = Math.max((wp('100%') / dynamicChartWidth) * wp('100%'), wp('8%'));
+  const maxScroll = Math.max(dynamicChartWidth - wp('100%'), 0);
+  const maxThumbTravel = Math.max(wp('100%') - thumbWidth, 0);
   const thumbTranslateX = scrollX.interpolate({
     inputRange: [0, maxScroll || 1],
     outputRange: [0, maxThumbTravel || 0],
@@ -267,7 +279,7 @@ export default function Zones({ startDate, endDate, meterId }: ZonesProps) {
             style={[
               styles.zoneButton,
               selectedView === 'all' && styles.zoneButtonActive,
-              { borderTopLeftRadius: 8, borderBottomLeftRadius: 8 },
+              { borderTopLeftRadius: wp('2%'), borderBottomLeftRadius: wp('2%') },
             ]}
             onPress={() => setSelectedView('all')}
           >
@@ -279,7 +291,7 @@ export default function Zones({ startDate, endDate, meterId }: ZonesProps) {
             style={[
               styles.zoneButton,
               selectedView === 'single' && styles.zoneButtonActive,
-              { borderTopRightRadius: 8, borderBottomRightRadius: 8 },
+              { borderTopRightRadius: wp('2%'), borderBottomRightRadius: wp('2%') },
             ]}
             onPress={() => setSelectedView('single')}
           >
@@ -290,7 +302,7 @@ export default function Zones({ startDate, endDate, meterId }: ZonesProps) {
         </View>
 
         <TouchableOpacity style={styles.downloadButton}>
-          <Feather name="download" size={16} color="#fff" />
+          <Feather name="download" size={wp('4%')} color="#fff" />
         </TouchableOpacity>
       </View>
 
@@ -304,7 +316,7 @@ export default function Zones({ startDate, endDate, meterId }: ZonesProps) {
           {selectedView === 'all' && chartData.type === 'stacked' ? (
             <>
               <ScrollView horizontal showsHorizontalScrollIndicator>
-                <View style={{ marginLeft: -20 }}>
+                <View style={{ marginLeft: wp('-5%') }}>
                   <StackedBarChart
                     data={{
                       labels: chartData.labels,
@@ -312,8 +324,8 @@ export default function Zones({ startDate, endDate, meterId }: ZonesProps) {
                       data: chartData.data,
                       barColors: chartData.barColors,
                     }}
-                    width={screenWidth * 2.2}
-                    height={220}
+                    width={wp('220%')}
+                    height={hp('30%')}
                     chartConfig={{
                       backgroundGradientFrom: '#fff',
                       backgroundGradientTo: '#fff',
@@ -321,9 +333,9 @@ export default function Zones({ startDate, endDate, meterId }: ZonesProps) {
                       formatYLabel: (y) => parseInt(y).toString(),
                       color: (opacity = 1) => `rgba(0,0,0,${opacity})`,
                       labelColor: (opacity = 1) => `rgba(0,0,0,${opacity})`,
-                      style: { borderRadius: 8 },
+                      style: { borderRadius: wp('2%') },
                       propsForLabels: {
-                        fontSize: 10,
+                        fontSize: wp('2.5%'),
                         textAnchor: 'middle',
                         alignmentBaseline: 'central',
                       },
@@ -336,9 +348,9 @@ export default function Zones({ startDate, endDate, meterId }: ZonesProps) {
                     withVerticalLabels 
                     segments={3}
                     style={{
-                      marginVertical: 8,
-                      marginRight: 20,
-                      paddingLeft: 20, // Added padding to shift bars to the right
+                      marginVertical: hp('1%'),
+                      marginRight: wp('5%'),
+                      paddingLeft: wp('5%'),
                     }}
                   />
                 </View>
@@ -364,9 +376,9 @@ export default function Zones({ startDate, endDate, meterId }: ZonesProps) {
                   [{ nativeEvent: { contentOffset: { x: scrollX } } }],
                   { useNativeDriver: false }
                 )}
-                style={{ marginBottom: 10 }}
+                style={{ marginBottom: hp('1%') }}
               >
-                <View style={{ marginLeft: -40 }}>
+                <View style={{ marginLeft: wp('-10%') }}>
                   <BarChart
                     data={{
                       labels: chartData.labels,
@@ -382,7 +394,7 @@ export default function Zones({ startDate, endDate, meterId }: ZonesProps) {
                     yLabelsOffset={-1}
                     chartConfig={barChartConfig}
                     fromZero
-                    style={{ borderRadius: 6 }}
+                    style={{ borderRadius: wp('1.5%') }}
                   />
                 </View>
               </Animated.ScrollView>
@@ -404,12 +416,16 @@ export default function Zones({ startDate, endDate, meterId }: ZonesProps) {
                   selectedValue={selectedZone}
                   onValueChange={(itemValue) => setSelectedZone(itemValue)}
                   style={styles.picker}
+                  dropdownIconColor="#333"
+                  mode="dropdown"
+                  itemStyle={styles.pickerItem}
                 >
                   {zoneMetadata.map((zone) => (
                     <Picker.Item
                       label={zone.name}
                       value={zone.id.toString()}
                       key={zone.id}
+                      style={styles.pickerItem}
                     />
                   ))}
                 </Picker>
@@ -427,21 +443,22 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 8,
-    marginBottom: 8,
-    gap: 10,
+    marginTop: hp('1%'),
+    marginBottom: hp('1%'),
+    gap: wp('2.5%'),
   },
   toggleWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: wp('1.5%'),
   },
   toggleLabel: {
-    fontSize: 12,
+    fontSize: wp('3%'),
     color: '#333',
+    fontFamily: 'Poppins',
   },
   toggleButton: {
-    borderRadius: 14,
+    borderRadius: wp('3.5%'),
     justifyContent: 'center',
     backgroundColor: '#ccc',
     position: 'relative',
@@ -455,14 +472,14 @@ const styles = StyleSheet.create({
   zoneToggleWrapper: {
     flexDirection: 'row',
     backgroundColor: '#f2f2f2',
-    borderRadius: 8,
+    borderRadius: wp('2%'),
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: '#e0e0e0',
   },
   zoneButton: {
-    paddingVertical: 3,
-    paddingHorizontal: 16,
+    paddingVertical: hp('0.4%'),
+    paddingHorizontal: wp('4%'),
     backgroundColor: '#fff',
   },
   zoneButtonActive: {
@@ -470,26 +487,28 @@ const styles = StyleSheet.create({
   },
   zoneButtonText: {
     color: '#212121',
-    fontSize: 12,
+    fontSize: wp('3%'),
     fontWeight: '500',
+    fontFamily: 'Poppins',
   },
   zoneButtonTextActive: {
     color: '#fff',
     fontWeight: 'bold',
+    fontFamily: 'Poppins',
   },
   downloadButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 4,
-    paddingHorizontal: 12,
+    paddingVertical: hp('0.5%'),
+    paddingHorizontal: wp('3%'),
     backgroundColor: '#59CD73',
-    borderRadius: 8,
+    borderRadius: wp('2%'),
   },
   chartContainer: {
     backgroundColor: '#fff',
-    padding: 12,
-    marginVertical: 8,
-    borderRadius: 12,
+    padding: wp('3%'),
+    marginVertical: hp('1%'),
+    borderRadius: wp('3%'),
     elevation: 1,
     borderWidth: 1,
     borderColor: '#ddd',
@@ -498,10 +517,11 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
   },
   chartTitle: {
-    fontSize: 16,
+    fontSize: wp('4%'),
     fontWeight: 'bold',
-    marginBottom: 8,
+    marginBottom: hp('1%'),
     textAlign: 'center',
+    fontFamily: 'Poppins',
   },
   scrollContainer: {
     overflow: 'hidden',
@@ -510,51 +530,60 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'center',
-    marginTop: 16,
-    gap: 8,
+    marginTop: hp('2%'),
+    gap: wp('2%'),
   },
   legendItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginRight: 12,
-    marginBottom: 8,
+    marginRight: wp('3%'),
+    marginBottom: hp('1%'),
   },
   legendColor: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    marginRight: 4,
+    width: wp('3%'),
+    height: wp('3%'),
+    borderRadius: wp('1.5%'),
+    marginRight: wp('1%'),
   },
   legendText: {
-    fontSize: 10,
+    fontSize: wp('2.5%'),
     color: '#333',
+    fontFamily: 'Poppins',
   },
   pickerContainer: {
-    marginTop: 8,
-    marginBottom: 12,
+    marginTop: hp('1%'),
+    marginBottom: hp('1.5%'),
     backgroundColor: '#f2f2f2',
-    borderRadius: 8,
-    paddingHorizontal: 8,
+    borderRadius: wp('2%'),
+    paddingHorizontal: wp('2%'),
+    overflow: 'hidden',
   },
   picker: {
-    height: 50,
+    height: hp('6%'),
     width: '100%',
+    color: '#333',
+    fontFamily: 'Poppins',
+  },
+  pickerItem: {
+    fontSize: wp('3.5%'),
+    fontFamily: 'Poppins',
+    height: hp('6%'),
     color: '#333',
   },
   scrollBarTrack: {
-    height: 4,
+    height: hp('0.5%'),
     backgroundColor: '#eee',
-    borderRadius: 2,
-    marginHorizontal: 2,
-    marginBottom: 2,
+    borderRadius: wp('0.5%'),
+    marginHorizontal: wp('0.5%'),
+    marginBottom: hp('0.5%'),
     width: '100%',
     overflow: 'hidden',
     position: 'relative',
   },
   scrollBarThumb: {
-    height: 4,
+    height: hp('0.5%'),
     backgroundColor: '#007bff',
-    borderRadius: 2,
+    borderRadius: wp('0.5%'),
     position: 'absolute',
     top: 0,
     left: 0,

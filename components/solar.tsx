@@ -1,5 +1,14 @@
 import React from 'react';
-import { View, Text, StyleSheet, Image } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  Image,
+} from 'react-native';
+import {
+  widthPercentageToDP as wp,
+  heightPercentageToDP as hp,
+} from 'react-native-responsive-screen';
 
 export default function Solar() {
   return (
@@ -38,7 +47,7 @@ export default function Solar() {
           {/* Right side with image */}
           <View style={styles.imageContainer}>
             <Image
-              source={require('../assets/images-user/solar.png')} // Replace with actual image path
+              source={require('../assets/images-user/solar.png')}
               style={styles.image}
               resizeMode="contain"
             />
@@ -69,74 +78,80 @@ export default function Solar() {
 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: 12,
+    paddingHorizontal: wp('3%'),
   },
   card: {
     backgroundColor: '#fff',
-    padding: 12,
-    borderRadius: 12,
+    padding: wp('3%'),
+    borderRadius: wp('3%'),
     elevation: 1,
     borderWidth: 1,
     borderColor: '#ddd',
-    marginTop: 16,
+    marginTop: hp('2%'),
     position: 'relative',
   },
   heading: {
-    fontSize: 16,
+    fontSize: wp('4.5%'),
     fontWeight: 'bold',
-    marginBottom: 8,
+    marginBottom: hp('1%'),
+    fontFamily: 'Poppins',
   },
   topRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 8,
+    marginBottom: hp('1%'),
   },
   leftColumn: {
     flex: 1,
-    marginRight: 6,
+    marginRight: wp('1.5%'),
   },
   imageContainer: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    marginLeft: 6,
+    marginLeft: wp('1.5%'),
   },
   image: {
     width: '100%',
-    height: 130,
+    height: hp('17%'),
   },
   subcard: {
     backgroundColor: '#F9FAFB',
-    borderRadius: 8,
-    padding: 8,
-    marginBottom: 8,
+    borderRadius: wp('2%'),
+    padding: wp('2%'),
+    marginBottom: hp('1%'),
   },
   bottomSubcard: {
     backgroundColor: '#F9FAFB',
-    borderRadius: 8,
-    padding: 8,
+    borderRadius: wp('2%'),
+    padding: wp('2%'),
+    marginTop: hp('1%'),
   },
   label: {
-    fontSize: 14,
-    marginBottom: 2,
+    fontSize: wp('3.5%'),
+    marginBottom: hp('0.5%'),
+    fontFamily: 'Poppins',
   },
   bigValue: {
-    fontSize: 18,
+    fontSize: wp('5%'),
     fontWeight: 'bold',
+    fontFamily: 'Poppins',
   },
   unit: {
-    fontSize: 12,
-    marginLeft: 4,
+    fontSize: wp('3%'),
+    marginLeft: wp('1%'),
     alignSelf: 'flex-end',
+    fontFamily: 'Poppins',
   },
   subValue: {
-    fontSize: 12,
+    fontSize: wp('3%'),
     fontWeight: 'bold',
+    fontFamily: 'Poppins',
   },
   inline: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    marginBottom: 4,
+    marginBottom: hp('0.5%'),
   },
   overlay: {
     position: 'absolute',
@@ -145,17 +160,18 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     backgroundColor: 'rgba(0,0,0,0.6)',
-    borderRadius: 12,
+    borderRadius: wp('3%'),
     justifyContent: 'center',
     alignItems: 'center',
   },
   overlayText: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: wp('4%'),
     fontWeight: 'bold',
     backgroundColor: '#333',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
+    paddingHorizontal: wp('4%'),
+    paddingVertical: hp('0.8%'),
+    borderRadius: wp('2%'),
+    fontFamily: 'Poppins',
   },
 });

@@ -1,6 +1,16 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
-import { Ionicons } from '@expo/vector-icons'; // For arrow icons
+import {
+  View,
+  Text,
+  StyleSheet,
+  Image,
+  TouchableOpacity,
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import {
+  widthPercentageToDP as wp,
+  heightPercentageToDP as hp,
+} from 'react-native-responsive-screen';
 
 const batteries = [
   {
@@ -35,7 +45,6 @@ const batteries = [
   },
 ];
 
-// Example data for previous cycle (use your actual data as needed)
 const previousCycle = {
   chargeStart: '2025-03-19 11:43',
   chargeEnd: '2025-03-19 11:08',
@@ -44,14 +53,12 @@ const previousCycle = {
 };
 
 function formatTimeRange(start: string, end: string) {
-  // Extract only time (HH:mm)
   const startTime = start.split(' ')[1];
   const endTime = end.split(' ')[1];
   return `${startTime} - ${endTime}`;
 }
 
 function formatDate(dateStr: string) {
-  // Convert YYYY-MM-DD to DD-MM-YYYY
   const [year, month, day] = dateStr.split(' ')[0].split('-');
   return `${day}-${month}-${year}`;
 }
@@ -77,7 +84,6 @@ export default function BatteryStorage() {
         <View style={styles.subCard}>
           <Text style={styles.bottomHeading}>Previous Cycle</Text>
           <View style={styles.subSubCardRow}>
-            {/* Charge Time Card */}
             <View style={styles.subSubCard}>
               <Text style={styles.subSubCardHeading}>Charge Time :</Text>
               <Text style={styles.subSubCardTime}>
@@ -87,7 +93,6 @@ export default function BatteryStorage() {
                 {formatDate(previousCycle.chargeStart)}
               </Text>
             </View>
-            {/* Discharge Time Card */}
             <View style={styles.subSubCard}>
               <Text style={styles.subSubCardHeading}>Discharge Time :</Text>
               <Text style={styles.subSubCardTime}>
@@ -100,26 +105,22 @@ export default function BatteryStorage() {
           </View>
         </View>
 
-        {/* Battery Info Section inside a subCard */}
+        {/* Battery Info Section */}
         <View style={styles.subCard}>
           <View style={styles.row}>
             <TouchableOpacity onPress={handlePrev} disabled={index === 0}>
-              <Ionicons name="chevron-back" size={28} color={index === 0 ? '#ccc' : '#000'} />
+              <Ionicons name="chevron-back" size={wp('7%')} color={index === 0 ? '#ccc' : '#000'} />
             </TouchableOpacity>
 
             <View style={styles.batteryContainer}>
-              {/* Left: Image & Status */}
               <View style={styles.left}>
                 <Image source={battery.image} style={styles.image} resizeMode="contain" />
                 <View style={styles.statusRow}>
                   <View style={[styles.statusCircle, { backgroundColor: battery.statusColor }]} />
-                  <Text style={styles.statusText}>
-                    {battery.status}
-                  </Text>
+                  <Text style={styles.statusText}>{battery.status}</Text>
                 </View>
               </View>
 
-              {/* Right: Battery Info */}
               <View style={styles.right}>
                 <Text style={styles.batteryName}>{battery.name}</Text>
                 <View style={styles.infoGroup}>
@@ -132,7 +133,7 @@ export default function BatteryStorage() {
             </View>
 
             <TouchableOpacity onPress={handleNext} disabled={index === batteries.length - 1}>
-              <Ionicons name="chevron-forward" size={28} color={index === batteries.length - 1 ? '#ccc' : '#000'} />
+              <Ionicons name="chevron-forward" size={wp('7%')} color={index === batteries.length - 1 ? '#ccc' : '#000'} />
             </TouchableOpacity>
           </View>
         </View>
@@ -148,22 +149,23 @@ export default function BatteryStorage() {
 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: 12,
+    paddingHorizontal: wp('3%'),
   },
   card: {
     backgroundColor: '#fff',
-    padding: 12,
-    borderRadius: 12,
+    padding: wp('3%'),
+    borderRadius: wp('3%'),
     elevation: 1,
     borderWidth: 1,
     borderColor: '#ddd',
-    marginTop: 16,
+    marginTop: hp('2%'),
     position: 'relative',
   },
   heading: {
-    fontSize: 16,
+    fontSize: wp('4.5%'),
     fontWeight: 'bold',
-    marginBottom: 8,
+    marginBottom: hp('1%'),
+    fontFamily: 'Poppins',
   },
   row: {
     flexDirection: 'row',
@@ -173,7 +175,7 @@ const styles = StyleSheet.create({
   batteryContainer: {
     flex: 1,
     flexDirection: 'row',
-    paddingHorizontal: 8,
+    paddingHorizontal: wp('2%'),
   },
   left: {
     flex: 1,
@@ -184,66 +186,71 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   image: {
-    width: 80,
-    height: 80,
-    marginBottom: 4,
+    width: wp('20%'),
+    height: wp('20%'),
+    marginBottom: hp('0.5%'),
   },
   statusRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 4,
+    marginTop: hp('0.5%'),
   },
   statusCircle: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    marginRight: 6,
+    width: wp('3%'),
+    height: wp('3%'),
+    borderRadius: wp('1.5%'),
+    marginRight: wp('1.5%'),
   },
   statusText: {
     fontWeight: '500',
-    fontSize: 14,
+    fontSize: wp('3.5%'),
+    fontFamily: 'Poppins',
   },
   batteryName: {
     fontWeight: 'bold',
-    fontSize: 14,
-    marginBottom: 4,
+    fontSize: wp('3.8%'),
+    marginBottom: hp('0.5%'),
     textAlign: 'center',
+    fontFamily: 'Poppins',
   },
   label: {
     fontWeight: 'bold',
+    fontFamily: 'Poppins',
   },
   info: {
-    fontSize: 12,
-    marginBottom: 2,
+    fontSize: wp('3%'),
+    marginBottom: hp('0.4%'),
     textAlign: 'center',
+    fontFamily: 'Poppins',
   },
   infoGroup: {
     alignItems: 'center',
   },
   subCard: {
-    marginTop: 16,
-    padding: 12,
-    borderRadius: 10,
+    marginTop: hp('2%'),
+    padding: wp('3%'),
+    borderRadius: wp('2.5%'),
     backgroundColor: '#F9FAFB',
     alignItems: 'center',
   },
   bottomHeading: {
     fontWeight: 'bold',
-    marginBottom: 8,
-    fontSize: 15,
+    marginBottom: hp('1%'),
+    fontSize: wp('4%'),
+    fontFamily: 'Poppins',
   },
   subSubCardRow: {
     flexDirection: 'row',
     width: '100%',
     justifyContent: 'space-between',
-    marginTop: 8,
+    marginTop: hp('1%'),
   },
   subSubCard: {
     flex: 1,
     backgroundColor: '#fff',
-    borderRadius: 8,
-    padding: 10,
-    marginHorizontal: 4,
+    borderRadius: wp('2%'),
+    padding: wp('3%'),
+    marginHorizontal: wp('1%'),
     alignItems: 'center',
     elevation: 1,
     shadowColor: '#eee',
@@ -252,19 +259,22 @@ const styles = StyleSheet.create({
   },
   subSubCardHeading: {
     fontWeight: 'bold',
-    fontSize: 13,
-    marginBottom: 4,
+    fontSize: wp('3.3%'),
+    marginBottom: hp('0.5%'),
     textAlign: 'center',
+    fontFamily: 'Poppins',
   },
   subSubCardTime: {
-    fontSize: 13,
-    marginBottom: 2,
+    fontSize: wp('3.2%'),
+    marginBottom: hp('0.5%'),
     textAlign: 'center',
+    fontFamily: 'Poppins',
   },
   subSubCardDate: {
-    fontSize: 12,
+    fontSize: wp('3%'),
     color: '#6b7280',
     textAlign: 'center',
+    fontFamily: 'Poppins',
   },
   overlay: {
     position: 'absolute',
@@ -273,17 +283,18 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     backgroundColor: 'rgba(0,0,0,0.6)',
-    borderRadius: 12,
+    borderRadius: wp('3%'),
     justifyContent: 'center',
     alignItems: 'center',
   },
   overlayText: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: wp('4%'),
     fontWeight: 'bold',
     backgroundColor: '#333',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
+    paddingHorizontal: wp('4%'),
+    paddingVertical: hp('0.8%'),
+    borderRadius: wp('2%'),
+    fontFamily: 'Poppins',
   },
 });

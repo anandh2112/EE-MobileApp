@@ -3,7 +3,6 @@ import {
   ScrollView,
   View,
   StyleSheet,
-  Dimensions,
   TouchableOpacity,
   Animated,
   NativeSyntheticEvent,
@@ -12,6 +11,10 @@ import {
   Easing,
 } from 'react-native';
 import { AntDesign } from '@expo/vector-icons';
+import {
+  widthPercentageToDP as wp,
+  heightPercentageToDP as hp,
+} from 'react-native-responsive-screen';
 
 import LandingHeader from '../../components/landing-top';
 import LandingMetrics from '../../components/landing-bottom';
@@ -25,9 +28,6 @@ import Solar from '@/components/solar';
 import BatteryStorage from '@/components/battery';
 import EVChargers from '@/components/ev';
 import TopBar from '@/components/topbar';
-
-const { height: screenHeight } = Dimensions.get('window');
-const containerHeight = screenHeight * 0.78;
 
 export default function Index() {
   const [facilityExpanded, setFacilityExpanded] = useState(false);
@@ -97,7 +97,7 @@ export default function Index() {
         <View style={styles.container}>
           <TopBar />
 
-          <View style={[styles.landingRoot, { height: containerHeight }]}>
+          <View style={styles.landingRoot}>
             <View style={styles.datepickerContainer}>
               <Datepicker
                 onDateChange={(start, end) =>
@@ -155,7 +155,7 @@ export default function Index() {
         ]}
       >
         <TouchableOpacity onPress={scrollToTop} style={styles.innerButton}>
-          <AntDesign name="up" size={24} color="#fff" />
+          <AntDesign name="up" size={wp('5.5%')} color="#fff" />
         </TouchableOpacity>
       </Animated.View>
     </View>
@@ -170,27 +170,31 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: 'white',
+    paddingBottom: hp('2%'),
   },
   landingRoot: {
     width: '100%',
     backgroundColor: 'white',
+    minHeight: hp('78%'),
+  },
+  datepickerContainer: {
   },
   headerContainer: {
     flex: 3.8,
+    paddingBottom: hp('1%'),
   },
   metricsContainer: {
     flex: 3,
   },
-  datepickerContainer: {},
   scrollTopButton: {
     position: 'absolute',
-    bottom: 30,
-    right: 20,
+    bottom: hp('3%'),
+    right: wp('5%'),
     zIndex: 20,
   },
   innerButton: {
     backgroundColor: '#0d9488',
-    borderRadius: 30,
-    padding: 5,
+    borderRadius: wp('8%'),
+    padding: wp('2.5%'),
   },
 });

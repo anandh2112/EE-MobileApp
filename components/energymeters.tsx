@@ -86,28 +86,15 @@ const EnergyMeterCard = ({
       <Text style={styles.label}>Consumption</Text>
       <TouchableOpacity
         onPress={() => {
-          if (id === 0) {
-            // Total Consumption card: go to all zones
-            router.push({
-              pathname: '/analytics',
-              params: {
-                initialTab: 'Zones',
-                startDate: startDateTime,
-                endDate: endDateTime,
-              },
-            });
-          } else {
-            // Specific zone
-            router.push({
-              pathname: '/analytics',
-              params: {
-                initialTab: 'Zones',
-                startDate: startDateTime,
-                endDate: endDateTime,
-                meterId: id,
-              },
-            });
-          }
+          router.push({
+            pathname: '/analytics',
+            params: {
+              initialTab: 'Zones',
+              startDate: startDateTime,
+              endDate: endDateTime,
+              ...(id !== 0 && { meterId: id.toString() }), // Only include meterId if not total consumption
+            },
+          });
         }}
       >
         <Text style={styles.detailsLink}>View Details</Text>

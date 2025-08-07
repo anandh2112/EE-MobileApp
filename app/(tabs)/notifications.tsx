@@ -38,7 +38,7 @@ export default function Notification() {
   return (
     <View style={styles.container}>
       <TopBar />
-      <Text style={styles.heading}>Notifications</Text>
+      <Text style={styles.heading}>Alerts</Text>
       <FlatList
         data={notifications}
         renderItem={renderItem}
