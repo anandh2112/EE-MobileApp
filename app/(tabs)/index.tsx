@@ -131,7 +131,10 @@ export default function Index() {
             endDateTime={selectedDates.end}
           />
 
-          <PeakDemand />
+          <PeakDemand 
+            startDateTime={selectedDates.start}
+            endDateTime={selectedDates.end}
+          />
           <HeatMap />
 
           <DieselGen

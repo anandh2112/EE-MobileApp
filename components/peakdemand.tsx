@@ -10,12 +10,14 @@ import {
 } from 'react-native';
 import { LineChart } from 'react-native-chart-kit';
 import { Feather } from '@expo/vector-icons';
+import axios from 'axios';
+import moment from 'moment';
 
 const screenWidth = Dimensions.get('window').width;
-const chartWidth = 1000;
+const chartWidth =1500;
 const chartHeight = 250;
-const TOOLTIP_WIDTH = 90;
-const TOOLTIP_HEIGHT = 38;
+const TOOLTIP_WIDTH = 130;
+const TOOLTIP_HEIGHT = 45;
 const CHART_SEGMENTS = 4;
 
 function getDynamicYAxisLabels(dataArr: number[], steps: number) {
@@ -33,7 +35,19 @@ function getDynamicYAxisLabels(dataArr: number[], steps: number) {
   return labels;
 }
 
-const PeakDemand: React.FC = () => {
+interface PeakDemandBlock {
+  time: string;
+  value: string;
+  timestamp: string;
+}
+
+interface Props {
+  startDateTime: string;
+  endDateTime: string;
+}
+
+const PeakDemand: React.FC<Props> = ({ startDateTime, endDateTime }) => {
+  const [peakDemandData, setPeakDemandData] = useState<PeakDemandBlock[]>([]);
   const [selectedDot, setSelectedDot] = useState<{
     value: number;
     x: number;
@@ -45,9 +59,7 @@ const PeakDemand: React.FC = () => {
 
   useEffect(() => {
     if (selectedDot) {
-      if (tooltipTimerRef.current) {
-        clearTimeout(tooltipTimerRef.current);
-      }
+      if (tooltipTimerRef.current) clearTimeout(tooltipTimerRef.current);
       tooltipTimerRef.current = setTimeout(() => {
         setSelectedDot(null);
       }, 5000);
@@ -60,6 +72,22 @@ const PeakDemand: React.FC = () => {
     };
   }, [selectedDot]);
 
+  useEffect(() => {
+    if (!startDateTime || !endDateTime) return;
+
+    const fetchData = async () => {
+      try {
+        const url = `https://mw.elementsenergies.com/api/opeakdemandmb?startDateTime=${startDateTime}&endDateTime=${endDateTime}`;
+        const res = await axios.get(url);
+        setPeakDemandData(res.data.peakDemandBlocks || []);
+      } catch (error) {
+        console.error('Failed to fetch peak demand data:', error);
+      }
+    };
+
+    fetchData();
+  }, [startDateTime, endDateTime]);
+
   const scrollX = useRef(new Animated.Value(0)).current;
   const thumbWidth = (screenWidth / chartWidth) * screenWidth;
   const maxScroll = chartWidth - screenWidth;
@@ -70,27 +98,23 @@ const PeakDemand: React.FC = () => {
     extrapolate: 'clamp',
   });
 
-  const hourLabels: string[] = Array.from({ length: 24 }, (_, i) =>
-    i.toString().padStart(2, '0')
-  );
-  const xLabels = Array.from({ length: 48 }, (_, i) =>
-    i % 2 === 0 ? hourLabels[i / 2] : ''
-  );
+  const upperCeiling = Array(peakDemandData.length).fill(745);
+  const lowerCeiling = Array(peakDemandData.length).fill(596);
+  const values = peakDemandData.map((item) => parseFloat(item.value));
 
-  const peakDemandData: number[] = [
-    260, 380, 490, 500, 605, 510, 420, 630, 440, 550, 570, 690,
-    700, 610, 515, 420, 330, 240, 238, 335, 520, 610, 700, 690,
-    580, 570, 460, 650, 740, 530, 425, 320, 215, 210, 305, 400,
-    590, 580, 570, 660, 655, 760, 565, 470, 275, 480, 685, 590,
-  ];
-  const upperCeiling: number[] = Array(48).fill(745);
-  const lowerCeiling: number[] = Array(48).fill(596);
+  // Format time into labels for even-indexed entries
+  const formattedLabels = peakDemandData.map((item, index) => {
+    if (index % 2 === 0) {
+      return moment(item.timestamp).format('HH');
+    }
+    return '';
+  });
 
   const data = {
-    labels: xLabels,
+    labels: formattedLabels,
     datasets: [
       {
-        data: peakDemandData,
+        data: values,
         strokeWidth: 2,
         color: (opacity = 1) => `rgba(34, 128, 176, ${opacity})`,
       },
@@ -107,7 +131,7 @@ const PeakDemand: React.FC = () => {
     ],
   };
 
-  function getTooltipPosition(dot: { x: number; y: number } | null) {
+  const getTooltipPosition = (dot: { x: number; y: number } | null) => {
     if (!dot) return { left: 0, top: 0 };
     let left = dot.x - TOOLTIP_WIDTH / 2;
     if (left < 0) left = 0;
@@ -115,15 +139,14 @@ const PeakDemand: React.FC = () => {
     let top = dot.y - TOOLTIP_HEIGHT - 8;
     if (top < 0) top = 0;
     return { left, top };
-  }
+  };
 
-  function getHourLabel(index: number) {
-    const hour = Math.floor(index / 2).toString().padStart(2, '0');
-    const minute = index % 2 === 0 ? '00' : '30';
-    return `${hour}:${minute}`;
-  }
+  const getLabel = (index: number) => {
+    const block = peakDemandData[index];
+    return block ? `${block.timestamp}` : '';
+  };
 
-  const allData = [...peakDemandData, ...upperCeiling, ...lowerCeiling];
+  const allData = [...values, ...upperCeiling, ...lowerCeiling];
   const yAxisLabels = getDynamicYAxisLabels(allData, CHART_SEGMENTS);
 
   const onDownloadPress = () => {
@@ -152,7 +175,7 @@ const PeakDemand: React.FC = () => {
                 { useNativeDriver: false }
               )}
             >
-              <View style={{ width: chartWidth, marginLeft: -20}}>
+              <View style={{ width: chartWidth, marginLeft: -20 }}>
                 <LineChart
                   data={data}
                   width={chartWidth}
@@ -176,7 +199,7 @@ const PeakDemand: React.FC = () => {
                       stroke: '#e3e3e3',
                     },
                   }}
-                  verticalLabelRotation={0}
+                  verticalLabelRotation={0} // Keep labels horizontal
                   withShadow={false}
                   bezier={false}
                   withVerticalLabels={true}
@@ -191,21 +214,21 @@ const PeakDemand: React.FC = () => {
                     style={{
                       position: 'absolute',
                       ...getTooltipPosition(selectedDot),
-                      backgroundColor: 'rgba(0,0,0,0.7)',
-                      paddingVertical: 3,
-                      paddingHorizontal: 6,
+                      backgroundColor: 'rgba(0,0,0,0.75)',
+                      paddingVertical: 4,
+                      paddingHorizontal: 8,
                       width: TOOLTIP_WIDTH,
                       height: TOOLTIP_HEIGHT,
                       alignItems: 'flex-start',
                       justifyContent: 'center',
-                      borderRadius: 4,
+                      borderRadius: 6,
                     }}
                   >
-                    <Text style={{ color: '#fff', fontSize: 12 }}>
-                      Hour : {getHourLabel(selectedDot.index)}
+                    <Text style={{ color: '#fff', fontSize: 11 }}>
+                      {getLabel(selectedDot.index)}
                     </Text>
                     <Text style={{ color: '#fff', fontSize: 13, fontWeight: 'bold' }}>
-                      {selectedDot.value}kVA
+                      {selectedDot.value} kVA
                     </Text>
                   </View>
                 )}
@@ -232,7 +255,7 @@ const PeakDemand: React.FC = () => {
               />
               <Text style={styles.legendLabel}>Upper Ceiling</Text>
             </View>
-            <Text style={styles.legendValue}>{upperCeiling[0]} kVA</Text>
+            <Text style={styles.legendValue}>745 kVA</Text>
           </View>
           <View style={styles.legendItemWithValue}>
             <View style={styles.legendItem}>
@@ -241,7 +264,7 @@ const PeakDemand: React.FC = () => {
               />
               <Text style={styles.legendLabel}>Lower Ceiling</Text>
             </View>
-            <Text style={styles.legendValue}>{lowerCeiling[0]} kVA</Text>
+            <Text style={styles.legendValue}>596 kVA</Text>
           </View>
         </View>
       </View>

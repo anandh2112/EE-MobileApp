@@ -6,9 +6,9 @@ buildscript {
     mavenCentral()
   }
   dependencies {
-    classpath('com.android.tools.build:gradle')
+    classpath('com.android.tools.build:gradle:8.4.0') // Explicit version added
     classpath('com.facebook.react:react-native-gradle-plugin')
-    classpath('org.jetbrains.kotlin:kotlin-gradle-plugin')
+    classpath('org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.0') // Optional: specify Kotlin version
   }
 }
 
@@ -26,10 +26,17 @@ allprojects {
       // All of React Native (JS, Obj-C sources, Android binaries) is installed from npm
       url(reactNativeAndroidDir)
     }
-
     google()
     mavenCentral()
     maven { url 'https://www.jitpack.io' }
+  }
+
+  // ⚠️ Exclude old Android Support library to avoid duplicate classes
+  configurations.all {
+    resolutionStrategy {
+      force 'androidx.core:core:1.13.1'
+    }
+    exclude group: 'com.android.support'
   }
 }
 

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, StyleSheet, Text, Pressable, Animated, TouchableOpacity, ScrollView } from 'react-native';
+import { View, StyleSheet, Text, Pressable, Animated, TouchableOpacity, ScrollView, Dimensions } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { LineChart } from 'react-native-chart-kit';
 import { Picker } from '@react-native-picker/picker';
@@ -9,6 +9,11 @@ import {
   widthPercentageToDP as wp,
   heightPercentageToDP as hp,
 } from 'react-native-responsive-screen';
+
+const screenWidth = Dimensions.get('window').width;
+const TOOLTIP_WIDTH = wp('30%');
+const TOOLTIP_HEIGHT = hp('5%');
+const CHART_SEGMENTS = 4;
 
 const zoneMetadata = [
   { id: 1, name: 'PLATING', category: 'C-49' },
@@ -22,7 +27,6 @@ const zoneMetadata = [
   { id: 9, name: 'TERRACE', category: 'C-49' },
   { id: 10, name: 'TOOL ROOM', category: 'C-50' },
   { id: 11, name: 'ADMIN BLOCK', category: 'C-50' },
-  { id: 12, name: 'TRANSFORMER', category: '' },
 ];
 
 type PeakAnalysisProps = {
@@ -36,6 +40,13 @@ export default function PeakAnalysis({ startDate, endDate, meterId }: PeakAnalys
   const [selectedUnit] = useState<'kVAh' | 'kWh'>('kVAh');
   const animation = useRef(new Animated.Value(0)).current;
   const scrollX = useRef(new Animated.Value(0)).current;
+  const [selectedDot, setSelectedDot] = useState<{
+    value: number;
+    x: number;
+    y: number;
+    index: number;
+  } | null>(null);
+  const tooltipTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   type ZoneDataItem = {
     zoneId: number;
@@ -47,6 +58,21 @@ export default function PeakAnalysis({ startDate, endDate, meterId }: PeakAnalys
   const [zoneData, setZoneData] = useState<ZoneDataItem[]>([]);
   const [selectedView, setSelectedView] = useState<'all' | 'single'>('all');
   const [selectedZone, setSelectedZone] = useState('1');
+
+  useEffect(() => {
+    if (selectedDot) {
+      if (tooltipTimerRef.current) clearTimeout(tooltipTimerRef.current);
+      tooltipTimerRef.current = setTimeout(() => {
+        setSelectedDot(null);
+      }, 5000);
+    }
+    return () => {
+      if (tooltipTimerRef.current) {
+        clearTimeout(tooltipTimerRef.current);
+        tooltipTimerRef.current = null;
+      }
+    };
+  }, [selectedDot]);
 
   useEffect(() => {
     if (meterId) {
@@ -70,56 +96,37 @@ export default function PeakAnalysis({ startDate, endDate, meterId }: PeakAnalys
 
     const fetchZoneData = async () => {
       try {
-        const isAllZones = selectedView === 'all';
+        const response = await axios.get('https://mw.elementsenergies.com/api/zkVAazmb', {
+          params: { startDateTime, endDateTime },
+        });
 
-        let endpoint = isAllZones
-          ? selectedUnit === 'kWh'
-            ? 'zkWhAZconsumption'
-            : 'zkVAhAZconsumption'
-          : selectedUnit === 'kWh'
-            ? 'zconsumption'
-            : 'zkVAhconsumption';
+        const data = response.data || {};
 
-        let response;
-        if (isAllZones) {
-          response = await axios.get(`https://mw.elementsenergies.com/api/${endpoint}`, {
-            params: { startDateTime, endDateTime },
-          });
-        } else {
-          response = await axios.get(`https://mw.elementsenergies.com/api/${endpoint}`, {
-            params: { startDateTime, endDateTime, zone: selectedZone },
-          });
-        }
-
-        const data = response.data?.consumptionData || [];
-
-        const groupedData = data.reduce((acc: { [x: string]: any[] }, item: { energy_meter_id: any }) => {
-          const zoneId = item.energy_meter_id;
-          if (!acc[zoneId]) {
-            acc[zoneId] = [];
-          }
-          acc[zoneId].push(item);
-          return acc;
-        }, {});
-
-        const formattedData = zoneMetadata
-          .filter(zone => Object.keys(groupedData).includes(zone.id.toString()))
-          .map(zone => {
-            const zData = groupedData[zone.id] || [];
-            const parsedData = zData.map((item: { hour: any; kWh_difference: any; kVAh_difference: any }) => ({
-              hour: item.hour,
-              value: parseFloat(
-                selectedUnit === 'kWh' ? item.kWh_difference || 0 : item.kVAh_difference || 0
-              ),
-            }));
-
+        const formattedData = zoneMetadata.map(zone => {
+          const zoneData = data[zone.id.toString()] || {};
+          const parsedData = Object.entries(zoneData).map(([timeRange, value]) => {
+            const hour = parseInt(timeRange.split(':')[0]);
             return {
-              zoneId: zone.id,
-              zoneName: zone.name,
-              category: zone.category || '',
-              data: parsedData,
+              hour,
+              value: parseFloat(value as string) || 0,
             };
           });
+
+          const sortedData = Array.from({ length: 24 }, (_, hour) => {
+            const hourData = parsedData.find(item => item.hour === hour);
+            return {
+              hour,
+              value: hourData ? hourData.value : 0,
+            };
+          });
+
+          return {
+            zoneId: zone.id,
+            zoneName: zone.name,
+            category: zone.category || '',
+            data: sortedData,
+          };
+        });
 
         setZoneData(formattedData);
       } catch (error) {
@@ -149,17 +156,21 @@ export default function PeakAnalysis({ startDate, endDate, meterId }: PeakAnalys
     "#00BCD4", "#795548"
   ];
 
+  const getTooltipPosition = (dot: { x: number; y: number } | null) => {
+    if (!dot) return { left: 0, top: 0 };
+    let left = dot.x - TOOLTIP_WIDTH / 2;
+    if (left < 0) left = 0;
+    if (left > screenWidth - TOOLTIP_WIDTH) left = screenWidth - TOOLTIP_WIDTH;
+    let top = dot.y - TOOLTIP_HEIGHT - 8;
+    if (top < 0) top = 0;
+    return { left, top };
+  };
+
   const generateChartData = () => {
     if (selectedView === 'all') {
       const datasets = zoneMetadata.map((zone, index) => {
         const zoneDataItem = zoneData.find(item => item.zoneId === zone.id);
-        const data = hourlyLabels.map((label, hourIndex) => {
-          const hourData = zoneDataItem?.data.find(item => {
-            const hourStr = item.hour.split(' ')[1]?.split(':')[0];
-            return parseInt(hourStr) === hourIndex;
-          });
-          return hourData?.value || 0;
-        });
+        const data = zoneDataItem ? zoneDataItem.data.map(item => item.value) : Array(24).fill(0);
 
         return {
           data,
@@ -179,13 +190,7 @@ export default function PeakAnalysis({ startDate, endDate, meterId }: PeakAnalys
       const zoneMetadataItem = zoneMetadata.find(zone => zone.id === selectedZoneId);
 
       const data = zoneDataItem 
-        ? hourlyLabels.map((label, hourIndex) => {
-            const hourData = zoneDataItem.data.find(item => {
-              const hourStr = item.hour.split(' ')[1]?.split(':')[0];
-              return parseInt(hourStr) === hourIndex;
-            });
-            return hourData?.value || 0;
-          })
+        ? zoneDataItem.data.map(item => item.value)
         : Array(24).fill(0);
 
       return {
@@ -379,28 +384,48 @@ export default function PeakAnalysis({ startDate, endDate, meterId }: PeakAnalys
               )}
               style={{ marginBottom: hp('1%') }}
             >
-              <LineChart
-                data={chartData}
-                width={dynamicChartWidth}
-                height={hp('27%')}
-                chartConfig={{
-                  ...chartConfig,
-                  color: () => "#2CAFFE",
-                }}
-                bezier
-                style={{
-                  marginVertical: hp('1%'),
-                  borderRadius: wp('3%'),
-                }}
-                withDots={true}
-                withShadow={false}
-                withInnerLines={true}
-                withOuterLines={true}
-                withVerticalLines={true}
-                withHorizontalLines={true}
-                segments={4}
-                fromZero={true}
-              />
+              <View style={{ width: dynamicChartWidth }}>
+                <LineChart
+                  data={chartData}
+                  width={dynamicChartWidth}
+                  height={hp('27%')}
+                  chartConfig={{
+                    ...chartConfig,
+                    color: () => "#2CAFFE",
+                  }}
+                  bezier
+                  style={{
+                    marginVertical: hp('1%'),
+                    borderRadius: wp('3%'),
+                  }}
+                  withDots={true}
+                  withShadow={false}
+                  withInnerLines={true}
+                  withOuterLines={true}
+                  withVerticalLines={true}
+                  withHorizontalLines={true}
+                  segments={4}
+                  fromZero={true}
+                  onDataPointClick={({ value, x, y, index }) =>
+                    setSelectedDot({ value, x, y, index })
+                  }
+                />
+                {selectedDot && (
+                  <View
+                    style={[
+                      styles.tooltip,
+                      getTooltipPosition(selectedDot)
+                    ]}
+                  >
+                    <Text style={styles.tooltipText}>
+                      {hourlyLabels[selectedDot.index]}:00 - {hourlyLabels[selectedDot.index]}:59
+                    </Text>
+                    <Text style={styles.tooltipValue}>
+                      {selectedDot.value.toFixed(2)} kVAh
+                    </Text>
+                  </View>
+                )}
+              </View>
             </Animated.ScrollView>
 
             <View style={styles.scrollBarTrack}>
@@ -600,5 +625,27 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 0,
     left: 0,
+  },
+  tooltip: {
+    position: 'absolute',
+    backgroundColor: 'rgba(0,0,0,0.75)',
+    paddingVertical: hp('0.5%'),
+    paddingHorizontal: wp('2%'),
+    width: TOOLTIP_WIDTH,
+    height: TOOLTIP_HEIGHT,
+    alignItems: 'flex-start',
+    justifyContent: 'center',
+    borderRadius: wp('1.5%'),
+  },
+  tooltipText: {
+    color: '#fff',
+    fontSize: wp('2.5%'),
+    fontFamily: 'Poppins',
+  },
+  tooltipValue: {
+    color: '#fff',
+    fontSize: wp('3%'),
+    fontWeight: 'bold',
+    fontFamily: 'Poppins',
   },
 });
