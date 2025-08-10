@@ -3,53 +3,78 @@ import { View, Text, Image, TouchableOpacity, TextInput, StyleSheet, ScrollView 
 import { Ionicons } from "@expo/vector-icons";
 
 export default function Profile() {
+  const isDisabled = true; // Toggle this if needed
+
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <View style={styles.avatarWrapper}>
-        <TouchableOpacity activeOpacity={0.7} style={styles.avatarTouchable}>
-          <Image
-            source={{ uri: "https://plus.unsplash.com/premium_photo-1683543124615-fb42e42c6201?q=80&w=2071&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D" }}
-            style={styles.avatar}
-          />
-          <View style={styles.editIcon}>
-            <Ionicons name="pencil" size={18} color="#fff" />
-          </View>
-        </TouchableOpacity>
-      </View>
-      <View style={styles.form}>
-        <Text style={styles.title}>Edit Profile</Text>
-        <Text style={styles.label}>First Name</Text>
-        <TextInput style={styles.input} placeholder="First Name" />
-
-        <Text style={styles.label}>Last Name</Text>
-        <TextInput style={styles.input} placeholder="Last Name" />
-
-        <Text style={styles.label}>Username</Text>
-        <TextInput style={styles.input} placeholder="Username" />
-
-        <Text style={styles.label}>Email</Text>
-        <TextInput style={styles.input} placeholder="Email" keyboardType="email-address" />
-
-        <Text style={styles.label}>Phone Number</Text>
-        <View style={styles.phoneRow}>
-          <TextInput
-            style={[styles.input, styles.countryCode]}
-            placeholder="+91"
-            editable={false}
-          />
-          <TextInput
-            style={[styles.input, styles.phoneInput]}
-            placeholder="1234567890"
-            keyboardType="phone-pad"
-          />
+    <View style={{ flex: 1 }}>
+      <ScrollView
+        contentContainerStyle={styles.container}
+        scrollEnabled={!isDisabled} // disable scrolling when overlay is active
+      >
+        <View style={styles.avatarWrapper}>
+          <TouchableOpacity
+            activeOpacity={0.7}
+            style={styles.avatarTouchable}
+            disabled={isDisabled}
+          >
+            <Image
+              source={{
+                uri: "https://plus.unsplash.com/premium_photo-1683543124615-fb42e42c6201?q=80&w=2071&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+              }}
+              style={styles.avatar}
+            />
+            <View style={styles.editIcon}>
+              <Ionicons name="pencil" size={18} color="#fff" />
+            </View>
+          </TouchableOpacity>
         </View>
+        <View style={styles.form}>
+          <Text style={styles.title}>Edit Profile</Text>
+          <Text style={styles.label}>First Name</Text>
+          <TextInput style={styles.input} placeholder="First Name" editable={!isDisabled} />
 
-        <TouchableOpacity style={styles.changePwdBtn}>
-          <Text style={styles.changePwdText}>Change</Text>
-          <Ionicons name="lock-closed" size={16} color="#fff" style={{ marginLeft: 8 }} />
-        </TouchableOpacity>
-      </View>
-    </ScrollView>
+          <Text style={styles.label}>Last Name</Text>
+          <TextInput style={styles.input} placeholder="Last Name" editable={!isDisabled} />
+
+          <Text style={styles.label}>Username</Text>
+          <TextInput style={styles.input} placeholder="Username" editable={!isDisabled} />
+
+          <Text style={styles.label}>Email</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Email"
+            keyboardType="email-address"
+            editable={!isDisabled}
+          />
+
+          <Text style={styles.label}>Phone Number</Text>
+          <View style={styles.phoneRow}>
+            <TextInput
+              style={[styles.input, styles.countryCode]}
+              placeholder="+91"
+              editable={false}
+            />
+            <TextInput
+              style={[styles.input, styles.phoneInput]}
+              placeholder="1234567890"
+              keyboardType="phone-pad"
+              editable={!isDisabled}
+            />
+          </View>
+
+          <TouchableOpacity style={styles.changePwdBtn} disabled={isDisabled}>
+            <Text style={styles.changePwdText}>Change</Text>
+            <Ionicons name="lock-closed" size={16} color="#fff" style={{ marginLeft: 8 }} />
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+
+      {isDisabled && (
+        <View style={styles.overlay}>
+          <Text style={styles.overlayText}>Section not available</Text>
+        </View>
+      )}
+    </View>
   );
 }
 
@@ -152,5 +177,25 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     fontSize: 16,
     letterSpacing: 0.3,
+  },
+  overlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(198, 197, 197, 0.65)",
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 999,
+  },
+  overlayText: {
+    fontSize: 18,
+    fontWeight: "500",
+    color: "rgba(50, 50, 50, 0.8)",
+    backgroundColor: "rgba(131, 131, 131, 0.8)",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
   },
 });

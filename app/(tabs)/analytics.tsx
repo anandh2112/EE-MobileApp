@@ -18,6 +18,7 @@ import ELog from '@/components/elog';
 import Zones from '@/components/zones';
 import Peakanalysis from '@/components/peakanalysis';
 import AnComp from '@/components/an-comp';
+import DateTimeRangePicker from '@/components/datetimerangepicker';
 
 const tabs = [
   { label: 'eLog', key: 'eLog' },
@@ -142,6 +143,12 @@ export default function Analytics() {
 
         {/* Date Picker */}
         <AnComp onDateChange={handleDateChange} />
+
+        {/* <DateTimeRangePicker 
+          onDateChange={handleDateChange}
+          variant="minimal"
+          timeFormat="12h"
+        /> */}
 
         {/* Tab Content */}
         <View style={{ flex: 1 }}>

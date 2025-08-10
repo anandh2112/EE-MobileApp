@@ -19,6 +19,7 @@ import {
 import LandingHeader from '../../components/landing-top';
 import LandingMetrics from '../../components/landing-bottom';
 import Datepicker from '@/components/datepicker';
+import DateTimeRangePicker from '@/components/datetimerangepicker';
 import HourlyEnergy from '../../components/hourlyenergy';
 import EnergyMeters from '../../components/energymeters';
 import PeakDemand from '../../components/peakdemand';
@@ -104,6 +105,11 @@ export default function Index() {
                   setSelectedDates({ start, end })
                 }
               />
+              {/* <DateTimeRangePicker 
+                onDateChange={(start, end) => setSelectedDates({ start, end })}
+                variant="card"
+                timeFormat="12h"
+              /> */}
             </View>
 
             <View style={styles.headerContainer}>

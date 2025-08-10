@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -12,6 +12,7 @@ import {
   widthPercentageToDP as wp,
   heightPercentageToDP as hp,
 } from 'react-native-responsive-screen';
+import { useDateTime } from '@/components/datetimecontext';
 
 interface AnCompProps {
   onToggleChange?: (value: 'kVAh' | 'kWh') => void;
@@ -19,47 +20,34 @@ interface AnCompProps {
 }
 
 export default function AnComp({ onToggleChange, onDateChange }: AnCompProps) {
-  const now = new Date();
-
-  const startOfDay = new Date(
-    now.getFullYear(),
-    now.getMonth(),
-    now.getDate(),
-    0,
-    0,
-    0,
-    0
-  );
-
-  const currentTime = new Date(
-    now.getFullYear(),
-    now.getMonth(),
-    now.getDate(),
-    now.getHours(),
-    now.getMinutes(),
-    0,
-    0
-  );
-
-  const [startDate, setStartDate] = useState(startOfDay);
-  const [endDate, setEndDate] = useState(currentTime);
+  const {
+    startDate,
+    endDate,
+    setStartDate,
+    setEndDate,
+    format
+  } = useDateTime();
+  
   const [pickerMode, setPickerMode] = useState<'start' | 'end' | null>(null);
+  const now = new Date();
+  const initialRender = useRef(true);
 
-  const format = (d: Date) =>
-    `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, '0')}-${d
-      .getDate()
-      .toString()
-      .padStart(2, '0')} ${d.getHours().toString().padStart(2, '0')}:${d
-      .getMinutes()
-      .toString()
-      .padStart(2, '0')}:${d.getSeconds().toString().padStart(2, '0')}`;
-
-  // Call once on mount
+  // Safe date change handler
   useEffect(() => {
+    if (initialRender.current) {
+      initialRender.current = false;
+      // Send initial dates on first render
+      if (onDateChange) {
+        onDateChange(format(startDate), format(endDate));
+      }
+      return;
+    }
+
+    // Only call onDateChange if dates actually changed
     if (onDateChange) {
       onDateChange(format(startDate), format(endDate));
     }
-  }, []);
+  }, [startDate, endDate]); // Removed format and onDateChange from dependencies
 
   return (
     <View>
@@ -112,22 +100,12 @@ export default function AnComp({ onToggleChange, onDateChange }: AnCompProps) {
         mode="datetime"
         date={pickerMode === 'start' ? startDate : endDate}
         onConfirm={(date) => {
-          let newStart = startDate;
-          let newEnd = endDate;
-
           if (pickerMode === 'start') {
             setStartDate(date);
-            newStart = date;
           } else if (pickerMode === 'end') {
             setEndDate(date);
-            newEnd = date;
           }
-
           setPickerMode(null);
-
-          if (onDateChange) {
-            onDateChange(format(newStart), format(newEnd));
-          }
         }}
         onCancel={() => setPickerMode(null)}
         is24Hour={false}
@@ -138,6 +116,7 @@ export default function AnComp({ onToggleChange, onDateChange }: AnCompProps) {
   );
 }
 
+// Keep the same styles
 const styles = StyleSheet.create({
   dateRow: {
     padding: hp('0.5%'),

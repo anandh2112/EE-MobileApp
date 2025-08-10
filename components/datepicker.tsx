@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -12,49 +12,42 @@ import {
   widthPercentageToDP as wp,
   heightPercentageToDP as hp,
 } from 'react-native-responsive-screen';
+import { useDateTime } from '@/components/datetimecontext';
 
 interface DateRangeCardProps {
   onToggleChange?: (value: 'kVAh' | 'kWh') => void;
   onDateChange?: (start: string, end: string) => void;
 }
 
-export default function DateRangeCard({ onToggleChange, onDateChange }: DateRangeCardProps) {
-  const now = new Date();
-
-  const startOfDay = new Date(
-    now.getFullYear(),
-    now.getMonth(),
-    now.getDate(),
-    0,
-    0,
-    0,
-    0
-  );
-
-  const currentTime = new Date(
-    now.getFullYear(),
-    now.getMonth(),
-    now.getDate(),
-    now.getHours(),
-    now.getMinutes(),
-    0,
-    0
-  );
-
-  const [startDate, setStartDate] = useState(startOfDay);
-  const [endDate, setEndDate] = useState(currentTime);
+export default function DateTimePicker({ onToggleChange, onDateChange }: DateRangeCardProps) {
+  const {
+    startDate,
+    endDate,
+    setStartDate,
+    setEndDate,
+    format
+  } = useDateTime();
+  
   const [pickerMode, setPickerMode] = useState<'start' | 'end' | null>(null);
+  const now = new Date();
+  const initialRender = useRef(true);
 
-  const formatDateTime = (date: Date) => {
-    const pad = (n: number) => (n < 10 ? `0${n}` : n);
-    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}-${pad(date.getMinutes())}-${pad(date.getSeconds())}`;
-  };
-
+  // Safe date change handler
   useEffect(() => {
-    if (onDateChange) {
-      onDateChange(formatDateTime(startDate), formatDateTime(endDate));
+    if (initialRender.current) {
+      initialRender.current = false;
+      // Send initial dates on first render
+      if (onDateChange) {
+        onDateChange(format(startDate), format(endDate));
+      }
+      return;
     }
-  }, [startDate, endDate]);
+
+    // Only call onDateChange if dates actually changed
+    if (onDateChange) {
+      onDateChange(format(startDate), format(endDate));
+    }
+  }, [startDate, endDate]); // Removed format and onDateChange from dependencies
 
   return (
     <View style={styles.cardContainer}>
@@ -120,6 +113,7 @@ export default function DateRangeCard({ onToggleChange, onDateChange }: DateRang
   );
 }
 
+// Keep the same styles
 const styles = StyleSheet.create({
   cardContainer: {
     marginHorizontal: wp('3%'),
