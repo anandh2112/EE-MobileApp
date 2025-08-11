@@ -448,6 +448,7 @@ export default function PeakAnalysis({ startDate, endDate, meterId }: PeakAnalys
                 dropdownIconColor="#333"
                 mode="dropdown"
                 itemStyle={styles.pickerItem}
+                dropdownIconRippleColor="#eee"
               >
                 {zoneMetadata.map((zone) => (
                   <Picker.Item
@@ -601,12 +602,14 @@ const styles = StyleSheet.create({
     width: '100%',
     color: '#333',
     fontFamily: 'Poppins',
+    backgroundColor: '#f2f2f2',
   },
   pickerItem: {
     fontSize: wp('3.5%'),
     fontFamily: 'Poppins',
     height: hp('6%'),
     color: '#333',
+    backgroundColor: '#f2f2f2',
   },
   scrollBarTrack: {
     height: hp('0.5%'),

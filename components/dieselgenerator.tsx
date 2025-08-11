@@ -23,6 +23,7 @@ export default function DieselGen({ startDateTime, endDateTime }: DieselGenProps
   const [currentTime, setCurrentTime] = useState(moment().tz('Asia/Kolkata'));
   const [showDetails, setShowDetails] = useState(false);
   const [selectedDG, setSelectedDG] = useState<'DG1' | 'DG2'>('DG1');
+  const [modalData, setModalData] = useState<any>(null);
 
   const responsiveFontSize = windowWidth < 400 ? 12 : 14;
 
@@ -45,11 +46,25 @@ export default function DieselGen({ startDateTime, endDateTime }: DieselGenProps
 
     const fetchDgDetails = async () => {
       try {
+        setLoading(true);
         const response = await fetch(
           `https://mw.elementsenergies.com/api/dgdc?startDateTime=${startDateTime}&endDateTime=${endDateTime}`
         );
         const data = await response.json();
         setDgData(data);
+        
+        // Fetch modal data upfront
+        const [dg1Response, dg2Response] = await Promise.all([
+          fetch(`https://mw.elementsenergies.com/api/dgd?startDateTime=${startDateTime}&endDateTime=${endDateTime}&DGNo=13`),
+          fetch(`https://mw.elementsenergies.com/api/dgd?startDateTime=${startDateTime}&endDateTime=${endDateTime}&DGNo=14`)
+        ]);
+        
+        const [dg1Data, dg2Data] = await Promise.all([dg1Response.json(), dg2Response.json()]);
+        
+        setModalData({
+          DG1: dg1Data,
+          DG2: dg2Data
+        });
       } catch (err) {
         console.error('Failed to fetch DG details:', err);
       } finally {
@@ -157,9 +172,9 @@ export default function DieselGen({ startDateTime, endDateTime }: DieselGenProps
       <DGDetailsModal
         visible={showDetails}
         onClose={() => setShowDetails(false)}
-        startDateTime={startDateTime}
-        endDateTime={endDateTime}
         dgNo={selectedDG === 'DG1' ? 13 : 14}
+        modalData={modalData}
+        onDGToggle={(newDG) => setSelectedDG(newDG === 13 ? 'DG1' : 'DG2')}
       />
     </View>
   );

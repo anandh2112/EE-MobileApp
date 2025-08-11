@@ -141,7 +141,7 @@ export default function LandingMetrics({ startDateTime, endDateTime }: LandingMe
       {/* Carbon Info */}
       <View style={styles.imageCard}>
         <View style={styles.videoSection}>
-          <Video
+          {/* <Video
             source={require('../assets/videos/vehicles.mp4')}
             style={styles.sideVideo}
             resizeMode="cover"
@@ -149,7 +149,7 @@ export default function LandingMetrics({ startDateTime, endDateTime }: LandingMe
             muted
             paused={false}
             ignoreSilentSwitch="obey"
-          />
+          /> */}
         </View>
         <View style={styles.infoSection}>
           <View style={styles.iconRowCenter}>

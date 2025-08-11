@@ -8,6 +8,7 @@ import {
   Pressable,
   useWindowDimensions,
   ActivityIndicator,
+  Animated,
 } from 'react-native';
 import { BarChart } from 'react-native-chart-kit';
 import moment from 'moment-timezone';
@@ -15,17 +16,17 @@ import moment from 'moment-timezone';
 interface Props {
   visible: boolean;
   onClose: () => void;
-  startDateTime: string;
-  endDateTime: string;
   dgNo: 13 | 14;
+  modalData: any;
+  onDGToggle: (newDG: 13 | 14) => void;
 }
 
 export default function DGDetailsModal({
   visible,
   onClose,
-  startDateTime,
-  endDateTime,
   dgNo,
+  modalData,
+  onDGToggle,
 }: Props) {
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const responsiveFontSize = windowWidth < 400 ? 12 : 14;
@@ -40,75 +41,87 @@ export default function DGDetailsModal({
   const [vlnValue, setVlnValue] = useState<number | null>(null);
   const [currentValue, setCurrentValue] = useState<number | null>(null);
   const [consumptionData, setConsumptionData] = useState<any[]>([]);
+  const [toggleAnim] = useState(new Animated.Value(dgNo === 13 ? 0 : 1));
 
   useEffect(() => {
-    if (!visible) return;
+    Animated.timing(toggleAnim, {
+      toValue: dgNo === 13 ? 0 : 1,
+      duration: 200,
+      useNativeDriver: true,
+    }).start();
+  }, [dgNo]);
 
-    const fetchDGDetails = async () => {
-      setLoading(true);
-      try {
-        const response = await fetch(
-          `https://mw.elementsenergies.com/api/dgd?startDateTime=${startDateTime}&endDateTime=${endDateTime}&DGNo=${dgNo}`
-        );
-        const data = await response.json();
+  useEffect(() => {
+    if (!modalData) return;
 
-        if (data?.dgd?.energyProduced !== undefined) {
-          setEnergyProduced(data.dgd.energyProduced);
-        } else {
-          setEnergyProduced(0);
-        }
-
-        const meterInfo = data.dgdcv?.[dgNo];
-        if (meterInfo) {
-          setVlnValue(meterInfo.avg_vln_value);
-          setCurrentValue(meterInfo.avg_current_value);
-          setTimestamp(meterInfo.timestamp);
-        } else {
-          setVlnValue(null);
-          setCurrentValue(null);
-          setTimestamp(null);
-        }
-
-        if (meterInfo?.timestamp) {
-          const now = moment.tz("Asia/Kolkata");
-          const last = moment.tz(meterInfo.timestamp, "Asia/Kolkata");
-          const diffSeconds = now.diff(last, "seconds");
-          setStatus(diffSeconds <= 180 ? "Running" : "Off");
-        } else {
-          setStatus("Off");
-        }
-
-        if (data?.dgdrt?.[dgNo]) {
-          setRuntime(data.dgdrt[dgNo].runningTimeMinutes);
-        } else {
-          setRuntime(null);
-        }
-
-        const hourlyData = data?.hrly_kwh_diff?.[dgNo];
-        if (hourlyData) {
-          const formatted = Object.entries(hourlyData).map(([ts, kWh]) => ({
-            y: kWh,
-            originalTimestamp: ts,
-          }));
-          setConsumptionData(formatted);
-        } else {
-          setConsumptionData([]);
-        }
-      } catch (error) {
-        console.error('Failed to fetch DG modal data:', error);
+    setLoading(true);
+    try {
+      const currentDGData = modalData[dgNo === 13 ? 'DG1' : 'DG2'];
+      
+      if (currentDGData?.dgd?.energyProduced !== undefined) {
+        setEnergyProduced(currentDGData.dgd.energyProduced);
+      } else {
         setEnergyProduced(0);
-        setConsumptionData([]);
-      } finally {
-        setLoading(false);
       }
-    };
 
-    fetchDGDetails();
-  }, [startDateTime, endDateTime, dgNo, visible]);
+      const meterInfo = currentDGData.dgdcv?.[dgNo];
+      if (meterInfo) {
+        setVlnValue(meterInfo.avg_vln_value);
+        setCurrentValue(meterInfo.avg_current_value);
+        setTimestamp(meterInfo.timestamp);
+      } else {
+        setVlnValue(null);
+        setCurrentValue(null);
+        setTimestamp(null);
+      }
+
+      if (meterInfo?.timestamp) {
+        const now = moment.tz("Asia/Kolkata");
+        const last = moment.tz(meterInfo.timestamp, "Asia/Kolkata");
+        const diffSeconds = now.diff(last, "seconds");
+        setStatus(diffSeconds <= 180 ? "Running" : "Off");
+      } else {
+        setStatus("Off");
+      }
+
+      if (currentDGData?.dgdrt?.[dgNo]) {
+        setRuntime(currentDGData.dgdrt[dgNo].runningTimeMinutes);
+      } else {
+        setRuntime(null);
+      }
+
+      const hourlyData = currentDGData?.hrly_kwh_diff?.[dgNo];
+      if (hourlyData) {
+        const formatted = Object.entries(hourlyData).map(([ts, kWh]) => ({
+          y: kWh,
+          originalTimestamp: ts,
+        }));
+        setConsumptionData(formatted);
+      } else {
+        setConsumptionData([]);
+      }
+    } catch (error) {
+      console.error('Failed to process DG modal data:', error);
+      setEnergyProduced(0);
+      setConsumptionData([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [modalData, dgNo]);
 
   const getStatusColor = (status: string) => {
     return status === 'Running' ? 'green' : 'red';
   };
+
+  const handleToggleDG = () => {
+    const newDG = dgNo === 13 ? 14 : 13;
+    onDGToggle(newDG);
+  };
+
+  const togglePosition = toggleAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, 50], // Adjust based on your toggle width
+  });
 
   const chartData = {
     labels: consumptionData.map((d) => moment(d.originalTimestamp, "YYYY-MM-DD HH:mm:ss").format("HH:mm")),
@@ -151,7 +164,28 @@ export default function DGDetailsModal({
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.modalBackground}>
         <View style={[styles.tooltipBox, { width: windowWidth * 0.9 }]}>
-          <Text style={[styles.tooltipTitle, { fontSize: responsiveFontSize + 2 }]}>Energy Generation</Text>
+          <View style={styles.headerRow}>
+            <Text style={[styles.tooltipTitle, { fontSize: responsiveFontSize + 2 }]}>
+              Energy Generation
+            </Text>
+            <View style={styles.toggleContainer}>
+              <Pressable onPress={handleToggleDG} style={styles.toggleWrapper}>
+                <Animated.View style={[styles.toggleButton, { transform: [{ translateX: togglePosition }] }]} />
+                <View style={styles.toggleOption}>
+                  <Text style={[
+                    styles.toggleText, 
+                    dgNo === 13 && styles.toggleTextActive
+                  ]}>DG1</Text>
+                </View>
+                <View style={styles.toggleOption}>
+                  <Text style={[
+                    styles.toggleText, 
+                    dgNo === 14 && styles.toggleTextActive
+                  ]}>DG2</Text>
+                </View>
+              </Pressable>
+            </View>
+          </View>
 
           {loading ? (
             <ActivityIndicator size="large" color="#3B82F6" style={{ marginVertical: 20 }} />
@@ -208,9 +242,50 @@ const styles = StyleSheet.create({
     elevation: 4,
     maxWidth: 500,
   },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
   tooltipTitle: {
     fontWeight: 'bold',
-    marginBottom: 12,
+  },
+  toggleContainer: {
+    width: 100, // Total width of the toggle
+    height: 30, // Height of the toggle
+  },
+  toggleWrapper: {
+    flex: 1,
+    flexDirection: 'row',
+    backgroundColor: '#e5e7eb',
+    borderRadius: 15,
+    padding: 2,
+    position: 'relative',
+  },
+  toggleButton: {
+    position: 'absolute',
+    width: 50, // Half of the toggle container width
+    height: 26, // Slightly less than toggle wrapper height
+    backgroundColor: '#3B82F6',
+    borderRadius: 13,
+    top: 2,
+    left: 2,
+  },
+  toggleOption: {
+    width: 50, // Half of the toggle container width
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  toggleText: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#4b5563',
+  },
+  toggleTextActive: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: 'white', // White color for selected option
   },
   chartContainer: {
     overflow: 'hidden',

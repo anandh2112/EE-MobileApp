@@ -60,7 +60,7 @@ export default function LoginScreen() {
       keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
     >
       <View style={styles.container}>
-        <Video
+        {/* <Video
           source={require('../assets/videos/loginscreen-vid.mp4')}
           style={StyleSheet.absoluteFill}
           repeat
@@ -68,7 +68,7 @@ export default function LoginScreen() {
           paused={false}
           resizeMode="cover"
           ignoreSilentSwitch="obey"
-        />
+        /> */}
 
         <ScrollView
           contentContainerStyle={{ flexGrow: 1 }}

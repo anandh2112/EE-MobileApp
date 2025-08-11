@@ -123,7 +123,7 @@ const styles = StyleSheet.create({
     borderColor: '#ddd',
     elevation: 1,
     paddingHorizontal: wp('1%'),
-    marginBottom: hp('1.5%'),
+    marginBottom: hp('1%'),
   },
   dateRow: {
     padding: wp('1%'),
@@ -132,7 +132,6 @@ const styles = StyleSheet.create({
   },
   dateInput: {
     flex: 1,
-    paddingBottom: hp('0.5%'),
     flexDirection: 'row',
     alignItems: 'center',
     gap: wp('1.5%'),
