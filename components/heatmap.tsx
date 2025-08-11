@@ -9,11 +9,15 @@ import {
   Dimensions,
   Pressable,
   Modal,
+  Alert,
 } from 'react-native';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { format, addDays, subDays, differenceInCalendarDays, isAfter } from 'date-fns';
 import Icon from 'react-native-vector-icons/Feather';
 import axios from 'axios';
+import * as FileSystem from 'expo-file-system';
+import * as Sharing from 'expo-sharing';
+import * as XLSX from 'xlsx';
 
 const screenWidth = Dimensions.get('window').width;
 const screenHeight = Dimensions.get('window').height;
@@ -42,6 +46,7 @@ export default function HeatMap() {
   const [scrollOffset, setScrollOffset] = useState(0);
   const [heatmapLayout, setHeatmapLayout] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const [data, setData] = useState<number[][]>([]);
+  const [isDownloading, setIsDownloading] = useState(false);
 
   const scrollViewRef = useRef<any>(null);
 
@@ -72,14 +77,14 @@ export default function HeatMap() {
 
   // Fetch data when startDate changes
   useEffect(() => {
-     const start = format(windowStart, 'yyyy-MM-dd');
+    const start = format(windowStart, 'yyyy-MM-dd');
     const end = format(addDays(windowEnd, 1), 'yyyy-MM-dd');
     const fetchConsumptionData = async () => {
       try {
         const res = await axios.get('https://mw.elementsenergies.com/api/ehconsumption', {
           params: {
             startDate: start,
-            endDate:end,
+            endDate: end,
           },
         });
 
@@ -105,6 +110,89 @@ export default function HeatMap() {
 
     fetchConsumptionData();
   }, [startDate]);
+
+  const downloadExcel = async () => {
+    if (isDownloading) return;
+    setIsDownloading(true);
+
+    try {
+      if (!data || data.length === 0) {
+        Alert.alert("No Data", "There is no data available to export.");
+        return;
+      }
+
+      // Prepare data for Excel
+      const headerRow = [
+        `Start: ${format(windowStart, 'yyyy-MM-dd')}`,
+        `End: ${format(windowEnd, 'yyyy-MM-dd')}`,
+        "",
+      ];
+
+      const columnHeaders = ["Date", "Hour", "Energy Consumed (kWh)"];
+      
+      const formattedData = data.flatMap((row, rowIndex) => 
+        row.map((value, colIndex) => [
+          yDates[rowIndex],
+          `${colIndex}:00`,
+          parseFloat(value.toString()),
+        ])
+      );
+
+      const dataForExcel = [headerRow, columnHeaders, ...formattedData];
+
+      // Create workbook
+      const workbook = XLSX.utils.book_new();
+      const worksheet = XLSX.utils.aoa_to_sheet(dataForExcel);
+      XLSX.utils.book_append_sheet(workbook, worksheet, "EnergyConsumption");
+
+      // Generate Excel file
+      const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "base64" });
+      const fileName = `Heat_Map_${format(windowStart, 'yyyy_MM_dd')}_to_${format(windowEnd, 'yyyy_MM_dd')}.xlsx`;
+      
+      if (Platform.OS === 'android') {
+        // For Android - save directly to Downloads folder
+        const permissions = await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync();
+        
+        if (!permissions.granted) {
+          Alert.alert("Permission Denied", "Storage permission is required to save the file.");
+          return;
+        }
+
+        const directoryUri = permissions.directoryUri;
+        
+        await FileSystem.StorageAccessFramework.createFileAsync(
+          directoryUri, 
+          fileName, 
+          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+          .then(async (uri) => {
+            await FileSystem.writeAsStringAsync(uri, excelBuffer, {
+              encoding: FileSystem.EncodingType.Base64,
+            });
+            Alert.alert("Success", "File saved to Downloads folder");
+          })
+          .catch(error => {
+            console.error("Error saving file:", error);
+            Alert.alert("Error", "Failed to save file");
+          });
+      } else {
+        // For iOS - use document directory
+        const fileUri = `${FileSystem.documentDirectory}${fileName}`;
+        
+        await FileSystem.writeAsStringAsync(fileUri, excelBuffer, {
+          encoding: FileSystem.EncodingType.Base64,
+        });
+        
+        // On iOS, we can't directly save to Downloads, so we'll show a success message
+        Alert.alert("Success", "File saved to app's document directory");
+      }
+    } catch (error) {
+      console.error("Error generating Excel file:", error);
+      Alert.alert("Error", "Failed to generate Excel file");
+    } finally {
+      setIsDownloading(false);
+    }
+  };
 
   const colorValues = [
     '#066A06', '#298F35', '#4DB458', '#6AC96A', '#8EDC7F', '#B1EF98', '#BBF558',
@@ -147,10 +235,6 @@ export default function HeatMap() {
 
   const showDatePicker = () => {
     setShowPicker(true);
-  };
-
-  const onDownloadPress = () => {
-    alert('Download feature coming soon!');
   };
 
   let tooltipAbsolute: { top: number; left: number } | null = null;
@@ -197,8 +281,9 @@ export default function HeatMap() {
               <Icon name="calendar" size={20} color="#007bff" />
             </TouchableOpacity>
             <TouchableOpacity
-              style={styles.downloadButton}
-              onPress={onDownloadPress}
+              style={[styles.downloadButton, isDownloading && styles.disabledButton]}
+              onPress={downloadExcel}
+              disabled={isDownloading}
             >
               <Icon name="download" size={18} color="#fff" />
             </TouchableOpacity>
@@ -385,7 +470,6 @@ export default function HeatMap() {
   );
 }
 
-
 const styles = StyleSheet.create({
   container: {
     paddingHorizontal: 12,
@@ -420,6 +504,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 2,
     marginTop: 2,
+  },
+  disabledButton: {
+    backgroundColor: '#cccccc',
   },
   heading: {
     fontSize: 16,

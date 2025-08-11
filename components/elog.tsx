@@ -7,6 +7,8 @@ import {
   Animated,
   TouchableOpacity,
   ScrollView,
+  Alert,
+  Platform,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import axios from 'axios';
@@ -15,6 +17,8 @@ import {
   widthPercentageToDP as wp,
   heightPercentageToDP as hp,
 } from 'react-native-responsive-screen';
+import * as FileSystem from 'expo-file-system';
+import * as XLSX from 'xlsx';
 
 type ZoneData = {
   zone: number;
@@ -35,28 +39,38 @@ type ELogProps = {
   endDate: string;
 };
 
+type ZoneInfo = {
+  name: string;
+  category: string;
+};
+
+type MeterToZoneMap = {
+  [key: number]: ZoneInfo;
+};
+
+const meterToZoneMap: MeterToZoneMap = {
+  1: { name: "PLATING", category: "C-49" },
+  2: { name: "DIE CASTING + CHINA BUFFING + CNC", category: "C-50" },
+  3: { name: "SCOTCH BUFFING", category: "C-50" },
+  4: { name: "BUFFING", category: "C-49" },
+  5: { name: "SPRAY+EPL-I", category: "C-50" },
+  6: { name: "SPRAY+ EPL-II", category: "C-49" },
+  7: { name: "RUMBLE", category: "C-50" },
+  8: { name: "AIR COMPRESSOR", category: "C-49" },
+  9: { name: "TERRACE", category: "C-49" },
+  10: { name: "TOOL ROOM", category: "C-50" },
+  11: { name: "ADMIN BLOCK", category: "C-50" },
+  12: { name: "TRANSFORMER", category: "" },
+  13: { name: "DIESEL GENERATOR - 1", category: "" },
+  14: { name: "DIESEL GENERATOR - 2", category: "" },
+};
+
 export default function ELog({ startDate, endDate }: ELogProps) {
   const [selectedUnit, setSelectedUnit] = useState<'kVAh' | 'kWh'>('kVAh');
   const animation = useRef(new Animated.Value(0)).current;
   const [zones, setZones] = useState<ZoneData[]>([]);
   const [zoneToggle] = useState<'all' | 'single'>('all'); // fixed to 'all' as disabled
-
-  const zoneNames = [
-    { zone: 1, name: 'PLATING', subName: 'C-49' },
-    { zone: 2, name: 'DIE CASTING + CHINA BUFFING + CNC', subName: 'C-50' },
-    { zone: 3, name: 'SCOTCH BUFFING', subName: 'C-50' },
-    { zone: 4, name: 'BUFFING', subName: 'C-49' },
-    { zone: 5, name: 'SPRAY+EPL-I', subName: 'C-50' },
-    { zone: 6, name: 'SPRAY+ EPL-II', subName: 'C-49' },
-    { zone: 7, name: 'RUMBLE', subName: 'C-50' },
-    { zone: 8, name: 'AIR COMPRESSOR', subName: 'C-49' },
-    { zone: 9, name: 'TERRACE', subName: 'C-49' },
-    { zone: 10, name: 'TOOL ROOM', subName: 'C-50' },
-    { zone: 11, name: 'ADMIN BLOCK', subName: 'C-50' },
-    { zone: 12, name: 'TRANSFORMER', subName: '' },
-    { zone: 13, name: 'DIESEL GENERATOR - 1', subName: '' },
-    { zone: 14, name: 'DIESEL GENERATOR - 2', subName: '' },
-  ];
+  const [isDownloading, setIsDownloading] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -79,7 +93,93 @@ export default function ELog({ startDate, endDate }: ELogProps) {
 
     // Only fetch if dates are available
     fetchData();
-  }, [startDate, endDate]); // Add props to dependency array
+  }, [startDate, endDate]);
+
+  const downloadExcel = async () => {
+    if (isDownloading) return;
+    setIsDownloading(true);
+
+    try {
+      if (!zones.length) {
+        Alert.alert("No Data", "There is no data available to export.");
+        return;
+      }
+
+      // Prepare data for Excel
+      const headerRow = [`Start: ${startDate}`, `End: ${endDate}`, "", "", ""];
+      const columnHeaders = ["Zone", "Timestamp", "kVAh", "kWh"];
+      const rows: any[][] = [];
+
+      zones.forEach((zone) => {
+        const zoneMeta = meterToZoneMap[zone.zone] || { name: `Zone ${zone.zone}`, category: "" };
+        const zoneName = zoneMeta.name;
+        const category = zoneMeta.category;
+        const zoneDisplay = category ? `${zoneName} (${category})` : zoneName;
+
+        rows.push([
+          zoneDisplay,
+          `Start: ${zone.min?.timestamp || "N/A"}`,
+          zone.min?.kVAh ?? "N/A",
+          zone.min?.kWh ?? "N/A",
+        ]);
+        rows.push([
+          "",
+          `End: ${zone.max?.timestamp || "N/A"}`,
+          zone.max?.kVAh ?? "N/A",
+          zone.max?.kWh ?? "N/A",
+        ]);
+      });
+
+      const dataForExcel = [headerRow, columnHeaders, ...rows];
+
+      // Create workbook
+      const workbook = XLSX.utils.book_new();
+      const worksheet = XLSX.utils.aoa_to_sheet(dataForExcel);
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Meter Readings");
+
+      // Generate Excel file
+      const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "base64" });
+      const fileName = `Meter_Readings_${moment(startDate).format("YYYYMMDD_HHmm")}_to_${moment(endDate).format("YYYYMMDD_HHmm")}.xlsx`;
+      
+      if (Platform.OS === 'android') {
+        // For Android - save directly to Downloads folder
+        const permissions = await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync();
+        
+        if (!permissions.granted) {
+          Alert.alert("Permission Denied", "Storage permission is required to save the file.");
+          return;
+        }
+
+        const directoryUri = permissions.directoryUri;
+        
+        await FileSystem.StorageAccessFramework.createFileAsync(directoryUri, fileName, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+          .then(async (uri) => {
+            await FileSystem.writeAsStringAsync(uri, excelBuffer, {
+              encoding: FileSystem.EncodingType.Base64,
+            });
+            Alert.alert("Success", "File saved to Downloads folder");
+          })
+          .catch(error => {
+            console.error("Error saving file:", error);
+            Alert.alert("Error", "Failed to save file");
+          });
+      } else {
+        // For iOS - use document directory
+        const fileUri = `${FileSystem.documentDirectory}${fileName}`;
+        
+        await FileSystem.writeAsStringAsync(fileUri, excelBuffer, {
+          encoding: FileSystem.EncodingType.Base64,
+        });
+        
+        Alert.alert("Success", "File saved to app's document directory");
+      }
+    } catch (error) {
+      console.error("Error generating Excel file:", error);
+      Alert.alert("Error", "Failed to generate Excel file");
+    } finally {
+      setIsDownloading(false);
+    }
+  };
 
   const toggleButtonWidth = wp('15%');
   const toggleButtonHeight = hp('2.2%');
@@ -166,7 +266,11 @@ export default function ELog({ startDate, endDate }: ELogProps) {
           </Pressable>
         </View>
 
-        <TouchableOpacity style={styles.downloadButton}>
+        <TouchableOpacity 
+          style={[styles.downloadButton, isDownloading && styles.disabledButton]}
+          onPress={downloadExcel}
+          disabled={isDownloading}
+        >
           <Feather name="download" size={wp('4%')} color="#fff" />
         </TouchableOpacity>
       </View>
@@ -178,9 +282,9 @@ export default function ELog({ startDate, endDate }: ELogProps) {
           const endValue = zone.max[selectedUnit];
           const consumed = endValue - startValue;
 
-          const zoneMeta = zoneNames.find(z => z.zone === zone.zone);
-          const zoneName = zoneMeta?.name || `Zone ${zone.zone}`;
-          const subName = zoneMeta?.subName || '';
+          const zoneMeta = meterToZoneMap[zone.zone] || { name: `Zone ${zone.zone}`, category: '' };
+          const zoneName = zoneMeta.name;
+          const subName = zoneMeta.category;
 
           return (
             <View style={styles.card} key={`zone-${zone.zone}`}>
@@ -362,6 +466,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: wp('3%'),
     backgroundColor: '#59CD73',
     borderRadius: wp('2%'),
+  },
+  disabledButton: {
+    backgroundColor: '#cccccc',
   },
   toggleWrapper: {
     flexDirection: 'row',

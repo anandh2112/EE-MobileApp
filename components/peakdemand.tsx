@@ -7,14 +7,19 @@ import {
   Animated,
   Dimensions,
   TouchableOpacity,
+  Alert,
+  Platform,
 } from 'react-native';
 import { LineChart } from 'react-native-chart-kit';
 import { Feather } from '@expo/vector-icons';
 import axios from 'axios';
 import moment from 'moment';
+import * as FileSystem from 'expo-file-system';
+import * as Sharing from 'expo-sharing';
+import * as XLSX from 'xlsx';
 
 const screenWidth = Dimensions.get('window').width;
-const chartWidth =1500;
+const chartWidth = 1500;
 const chartHeight = 250;
 const TOOLTIP_WIDTH = 130;
 const TOOLTIP_HEIGHT = 45;
@@ -54,6 +59,7 @@ const PeakDemand: React.FC<Props> = ({ startDateTime, endDateTime }) => {
     y: number;
     index: number;
   } | null>(null);
+  const [isDownloading, setIsDownloading] = useState(false);
 
   const tooltipTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -102,7 +108,6 @@ const PeakDemand: React.FC<Props> = ({ startDateTime, endDateTime }) => {
   const lowerCeiling = Array(peakDemandData.length).fill(596);
   const values = peakDemandData.map((item) => parseFloat(item.value));
 
-  // Format time into labels for even-indexed entries
   const formattedLabels = peakDemandData.map((item, index) => {
     if (index % 2 === 0) {
       return moment(item.timestamp).format('HH');
@@ -131,6 +136,79 @@ const PeakDemand: React.FC<Props> = ({ startDateTime, endDateTime }) => {
     ],
   };
 
+  const downloadExcel = async () => {
+    if (isDownloading) return;
+    setIsDownloading(true);
+
+    try {
+      if (!peakDemandData || peakDemandData.length === 0) {
+        Alert.alert("No Data", "There is no data available to export.");
+        return;
+      }
+
+      // Prepare data for Excel
+      const headerRow = [`Start: ${startDateTime}`, `End: ${endDateTime}`, ""];
+      const columnHeaders = ["Date", "Time", "Peak Demand (kVA)"];
+
+      const formattedData = peakDemandData.map((item) => [
+        moment(item.timestamp).format("YYYY-MM-DD"),
+        moment(item.timestamp).format("HH:mm"),
+        parseFloat(item.value),
+      ]);
+
+      const dataForExcel = [headerRow, columnHeaders, ...formattedData];
+
+      // Create workbook
+      const workbook = XLSX.utils.book_new();
+      const worksheet = XLSX.utils.aoa_to_sheet(dataForExcel);
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Peak Demand Data");
+
+      // Generate Excel file
+      const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "base64" });
+      const fileName = `Peak_Demand_${startDateTime}_to_${endDateTime}.xlsx`;
+      
+      if (Platform.OS === 'android') {
+        // For Android - save directly to Downloads folder
+        const permissions = await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync();
+        
+        if (!permissions.granted) {
+          Alert.alert("Permission Denied", "Storage permission is required to save the file.");
+          return;
+        }
+
+        const directoryUri = permissions.directoryUri;
+        const fileUri = `${directoryUri}/${fileName}`;
+        
+        await FileSystem.StorageAccessFramework.createFileAsync(directoryUri, fileName, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+          .then(async (uri) => {
+            await FileSystem.writeAsStringAsync(uri, excelBuffer, {
+              encoding: FileSystem.EncodingType.Base64,
+            });
+            Alert.alert("Success", "File saved to Downloads folder");
+          })
+          .catch(error => {
+            console.error("Error saving file:", error);
+            Alert.alert("Error", "Failed to save file");
+          });
+      } else {
+        // For iOS - use document directory
+        const fileUri = `${FileSystem.documentDirectory}${fileName}`;
+        
+        await FileSystem.writeAsStringAsync(fileUri, excelBuffer, {
+          encoding: FileSystem.EncodingType.Base64,
+        });
+        
+        // On iOS, we can't directly save to Downloads, so we'll show a success message
+        Alert.alert("Success", "File saved to app's document directory");
+      }
+    } catch (error) {
+      console.error("Error generating Excel file:", error);
+      Alert.alert("Error", "Failed to generate Excel file");
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
   const getTooltipPosition = (dot: { x: number; y: number } | null) => {
     if (!dot) return { left: 0, top: 0 };
     let left = dot.x - TOOLTIP_WIDTH / 2;
@@ -149,16 +227,16 @@ const PeakDemand: React.FC<Props> = ({ startDateTime, endDateTime }) => {
   const allData = [...values, ...upperCeiling, ...lowerCeiling];
   const yAxisLabels = getDynamicYAxisLabels(allData, CHART_SEGMENTS);
 
-  const onDownloadPress = () => {
-    alert('Download feature coming soon!');
-  };
-
   return (
     <View style={styles.container}>
       <View style={styles.card}>
         <View style={styles.headerRow}>
           <Text style={styles.heading}>Peak Demand</Text>
-          <TouchableOpacity style={styles.downloadButton} onPress={onDownloadPress}>
+          <TouchableOpacity 
+            style={[styles.downloadButton, isDownloading && styles.disabledButton]}
+            onPress={downloadExcel}
+            disabled={isDownloading}
+          >
             <Feather name="download" size={18} color="#fff" />
           </TouchableOpacity>
         </View>
@@ -199,7 +277,7 @@ const PeakDemand: React.FC<Props> = ({ startDateTime, endDateTime }) => {
                       stroke: '#e3e3e3',
                     },
                   }}
-                  verticalLabelRotation={0} // Keep labels horizontal
+                  verticalLabelRotation={0}
                   withShadow={false}
                   bezier={false}
                   withVerticalLabels={true}
@@ -272,8 +350,6 @@ const PeakDemand: React.FC<Props> = ({ startDateTime, endDateTime }) => {
   );
 };
 
-export default PeakDemand;
-
 const styles = StyleSheet.create({
   container: {
     paddingHorizontal: 12,
@@ -304,6 +380,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 2,
     marginTop: 2,
+  },
+  disabledButton: {
+    backgroundColor: '#cccccc',
   },
   legendRow: {
     flexDirection: 'row',
@@ -356,3 +435,5 @@ const styles = StyleSheet.create({
     left: 0,
   },
 });
+
+export default PeakDemand;

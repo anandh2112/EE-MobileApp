@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, StyleSheet, Text, Pressable, Animated, TouchableOpacity, ScrollView } from 'react-native';
+import { View, StyleSheet, Text, Pressable, Animated, TouchableOpacity, ScrollView, Alert, Platform } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { StackedBarChart, BarChart } from 'react-native-chart-kit';
 import { Picker } from '@react-native-picker/picker';
@@ -9,6 +9,9 @@ import {
   widthPercentageToDP as wp,
   heightPercentageToDP as hp,
 } from 'react-native-responsive-screen';
+import * as FileSystem from 'expo-file-system';
+import * as XLSX from 'xlsx';
+import moment from 'moment-timezone';
 
 const zoneMetadata = [
   { id: 1, name: 'PLATING', category: 'C-49' },
@@ -71,12 +74,13 @@ export default function Zones({ startDate, endDate, meterId }: ZonesProps) {
   const [selectedUnit, setSelectedUnit] = useState<'kVAh' | 'kWh'>('kVAh');
   const animation = useRef(new Animated.Value(0)).current;
   const scrollX = useRef(new Animated.Value(0)).current;
+  const [isDownloading, setIsDownloading] = useState(false);
 
   type ZoneDataItem = {
     zoneId: number;
     zoneName: string;
     category: string;
-    data: { hour: any; value: number }[];
+    data: { hour: string; value: number }[];
   };
 
   const [zoneData, setZoneData] = useState<ZoneDataItem[]>([]);
@@ -141,7 +145,7 @@ export default function Zones({ startDate, endDate, meterId }: ZonesProps) {
           .filter(zone => Object.keys(groupedData).includes(zone.id.toString()))
           .map(zone => {
             const zData = groupedData[zone.id] || [];
-            const parsedData = zData.map((item: { hour: any; kWh_difference: any; kVAh_difference: any }) => ({
+            const parsedData = zData.map((item: { hour: string; kWh_difference: any; kVAh_difference: any }) => ({
               hour: item.hour,
               value: parseFloat(
                 selectedUnit === 'kWh' ? item.kWh_difference || 0 : item.kVAh_difference || 0
@@ -183,6 +187,93 @@ export default function Zones({ startDate, endDate, meterId }: ZonesProps) {
   const hourlyLabels = Array.from({ length: 24 }, (_, i) =>
     i.toString().padStart(2, '0')
   );
+
+  const downloadExcel = async () => {
+    if (isDownloading) return;
+    setIsDownloading(true);
+
+    try {
+      if (!zoneData?.length) {
+        Alert.alert("No Data", "There is no data available to export.");
+        return;
+      }
+
+      // Prepare data for Excel
+      const headerRow = [`Start: ${startDate}`, `End: ${endDate}`, "", "", ""];
+      const columnHeaders = ["Date", "Time", ...zoneData.map((zone) => `${zone.zoneName}${zone.category ? ` (${zone.category})` : ''} - ${selectedUnit}`)];
+      
+      const uniqueTimes = [
+        ...new Set(
+          zoneData.flatMap((zone) =>
+            zone.data.map((item) => moment(item.hour).format("YYYY-MM-DD HH:mm"))
+          )
+        ),
+      ].sort();
+
+      const formattedData = uniqueTimes.map((time) => {
+        const [date, hour] = time.split(" ");
+        const row = [date, hour];
+    
+        zoneData.forEach((zone) => {
+          const zoneDataForTime = zone.data.find(
+            (item) => moment(item.hour).format("YYYY-MM-DD HH:mm") === time
+          );
+          row.push(zoneDataForTime ? zoneDataForTime.value.toString() : "0");
+        });
+    
+        return row;
+      });
+
+      const dataForExcel = [headerRow, columnHeaders, ...formattedData];
+
+      // Create workbook
+      const workbook = XLSX.utils.book_new();
+      const worksheet = XLSX.utils.aoa_to_sheet(dataForExcel);
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Zones Consumption");
+
+      // Generate Excel file
+      const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "base64" });
+      const fileName = `Zones_Consumption_${startDate}_to_${endDate}.xlsx`;
+      
+      if (Platform.OS === 'android') {
+        // For Android - save directly to Downloads folder
+        const permissions = await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync();
+        
+        if (!permissions.granted) {
+          Alert.alert("Permission Denied", "Storage permission is required to save the file.");
+          return;
+        }
+
+        const directoryUri = permissions.directoryUri;
+        
+        await FileSystem.StorageAccessFramework.createFileAsync(directoryUri, fileName, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+          .then(async (uri) => {
+            await FileSystem.writeAsStringAsync(uri, excelBuffer, {
+              encoding: FileSystem.EncodingType.Base64,
+            });
+            Alert.alert("Success", "File saved to Downloads folder");
+          })
+          .catch(error => {
+            console.error("Error saving file:", error);
+            Alert.alert("Error", "Failed to save file");
+          });
+      } else {
+        // For iOS - use document directory
+        const fileUri = `${FileSystem.documentDirectory}${fileName}`;
+        
+        await FileSystem.writeAsStringAsync(fileUri, excelBuffer, {
+          encoding: FileSystem.EncodingType.Base64,
+        });
+        
+        Alert.alert("Success", "File saved to app's document directory");
+      }
+    } catch (error) {
+      console.error("Error generating Excel file:", error);
+      Alert.alert("Error", "Failed to generate Excel file");
+    } finally {
+      setIsDownloading(false);
+    }
+  };
 
   const generateChartData = (): ChartData => {
     if (selectedView === 'all') {
@@ -301,7 +392,11 @@ export default function Zones({ startDate, endDate, meterId }: ZonesProps) {
           </Pressable>
         </View>
 
-        <TouchableOpacity style={styles.downloadButton}>
+        <TouchableOpacity 
+          style={[styles.downloadButton, isDownloading && styles.disabledButton]}
+          onPress={downloadExcel}
+          disabled={isDownloading}
+        >
           <Feather name="download" size={wp('4%')} color="#fff" />
         </TouchableOpacity>
       </View>
@@ -503,6 +598,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: wp('3%'),
     backgroundColor: '#59CD73',
     borderRadius: wp('2%'),
+  },
+  disabledButton: {
+    backgroundColor: '#cccccc',
   },
   chartContainer: {
     backgroundColor: '#fff',

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, StyleSheet, Text, Pressable, Animated, TouchableOpacity, ScrollView, Dimensions } from 'react-native';
+import { View, StyleSheet, Text, Pressable, Animated, TouchableOpacity, ScrollView, Dimensions, Alert, Platform } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { LineChart } from 'react-native-chart-kit';
 import { Picker } from '@react-native-picker/picker';
@@ -9,6 +9,8 @@ import {
   widthPercentageToDP as wp,
   heightPercentageToDP as hp,
 } from 'react-native-responsive-screen';
+import * as FileSystem from 'expo-file-system';
+import * as XLSX from 'xlsx';
 
 const screenWidth = Dimensions.get('window').width;
 const TOOLTIP_WIDTH = wp('30%');
@@ -47,6 +49,7 @@ export default function PeakAnalysis({ startDate, endDate, meterId }: PeakAnalys
     index: number;
   } | null>(null);
   const tooltipTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [isDownloading, setIsDownloading] = useState(false);
 
   type ZoneDataItem = {
     zoneId: number;
@@ -241,6 +244,142 @@ export default function PeakAnalysis({ startDate, endDate, meterId }: PeakAnalys
     useShadowColorFromDataset: false,
   };
 
+  const handleDownloadExcel = async () => {
+    if (isDownloading) return;
+    setIsDownloading(true);
+
+    try {
+      if (zoneData.length === 0) {
+        Alert.alert("No Data", "There is no data available to export.");
+        return;
+      }
+
+      // Prepare data for Excel
+      if (selectedView === 'single') {
+        const currentZoneData = zoneData.find(zone => zone.zoneId === parseInt(selectedZone));
+        if (!currentZoneData || currentZoneData.data.length === 0) {
+          Alert.alert("No Data", "No data available for the selected single zone to download.");
+          return;
+        }
+
+        const zoneName = currentZoneData.zoneName;
+        const category = currentZoneData.category;
+
+        const zoneDisplay = category ? `${zoneName} (${category})` : zoneName;
+
+        const headerRow1 = [`Zone: ${zoneDisplay}`, "", ""];
+        const headerRow2 = [`Start Date Time: ${startDate}`, `End Date Time: ${endDate}`, ""];
+        const columnHeaders = ["Hour", "Time Range", "Total kVA"];
+
+        const formattedData = currentZoneData.data.map((item) => [
+          item.hour,
+          `${item.hour}:00 - ${item.hour}:59`,
+          item.value,
+        ]);
+
+        const dataForExcel = [headerRow1, headerRow2, [], columnHeaders, ...formattedData];
+        const worksheet = XLSX.utils.aoa_to_sheet(dataForExcel);
+
+        let sheetNameForExcel;
+        if (zoneName === "DC+ CB + CNC") {
+          sheetNameForExcel = "DC+CB+CNC kVA Data";
+        } else {
+          sheetNameForExcel = `${zoneName} kVA Data`;
+          if (sheetNameForExcel.length > 31) {
+            sheetNameForExcel = sheetNameForExcel.substring(0, 31);
+          }
+        }
+
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, sheetNameForExcel);
+
+        const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "base64" });
+        const fileName = `${zoneName.replace(/[\s\+]/g, '_')}_kVA_Data.xlsx`;
+        
+        await saveExcelFile(excelBuffer, fileName);
+      } else {
+        const headerRow = [`Start: ${startDate}`, `End: ${endDate}`];
+        const columnHeaders = [
+          "Hour",
+          "Time Range",
+          ...zoneData.map((zone) =>
+            zone.category
+              ? `${zone.zoneName} (${zone.category}) - kVA`
+              : `${zone.zoneName} - kVA`
+          ),
+        ];
+
+        const formattedData = Array.from({ length: 24 }, (_, hour) => {
+          const row = [
+            hour,
+            `${hour}:00 - ${hour}:59`,
+            ...zoneData.map(zone => {
+              const hourData = zone.data.find(item => item.hour === hour);
+              return hourData ? hourData.value : 0;
+            })
+          ];
+          return row;
+        });
+
+        const dataForExcel = [headerRow, [], columnHeaders, ...formattedData];
+        const worksheet = XLSX.utils.aoa_to_sheet(dataForExcel);
+
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "All Zones Peak kVA");
+
+        const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "base64" });
+        const fileName = `All_Zones_Peak_kVA_data.xlsx`;
+        
+        await saveExcelFile(excelBuffer, fileName);
+      }
+    } catch (error) {
+      console.error("Error generating Excel file:", error);
+      Alert.alert("Error", "Failed to generate Excel file");
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
+  const saveExcelFile = async (excelBuffer: string, fileName: string) => {
+    try {
+      if (Platform.OS === 'android') {
+        // For Android - save directly to Downloads folder
+        const permissions = await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync();
+        
+        if (!permissions.granted) {
+          Alert.alert("Permission Denied", "Storage permission is required to save the file.");
+          return;
+        }
+
+        const directoryUri = permissions.directoryUri;
+        
+        await FileSystem.StorageAccessFramework.createFileAsync(directoryUri, fileName, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+          .then(async (uri) => {
+            await FileSystem.writeAsStringAsync(uri, excelBuffer, {
+              encoding: FileSystem.EncodingType.Base64,
+            });
+            Alert.alert("Success", "File saved to Downloads folder");
+          })
+          .catch(error => {
+            console.error("Error saving file:", error);
+            Alert.alert("Error", "Failed to save file");
+          });
+      } else {
+        // For iOS - use document directory
+        const fileUri = `${FileSystem.documentDirectory}${fileName}`;
+        
+        await FileSystem.writeAsStringAsync(fileUri, excelBuffer, {
+          encoding: FileSystem.EncodingType.Base64,
+        });
+        
+        Alert.alert("Success", "File saved to app's document directory");
+      }
+    } catch (error) {
+      console.error("Error saving file:", error);
+      Alert.alert("Error", "Failed to save file");
+    }
+  };
+
   return (
     <View>
       <View style={styles.bottomRow}>
@@ -305,7 +444,11 @@ export default function PeakAnalysis({ startDate, endDate, meterId }: PeakAnalys
           </Pressable>
         </View>
 
-        <TouchableOpacity style={styles.downloadButton}>
+        <TouchableOpacity 
+          style={[styles.downloadButton, isDownloading && styles.disabledButton]}
+          onPress={handleDownloadExcel}
+          disabled={isDownloading}
+        >
           <Feather name="download" size={wp('4%')} color="#fff" />
         </TouchableOpacity>
       </View>
@@ -541,6 +684,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: wp('3%'),
     backgroundColor: '#59CD73',
     borderRadius: wp('2%'),
+  },
+  disabledButton: {
+    backgroundColor: '#cccccc',
   },
   chartCard: {
     backgroundColor: '#fff',
