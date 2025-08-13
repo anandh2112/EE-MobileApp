@@ -328,6 +328,31 @@ const PeakDemand: React.FC<Props> = ({ startDateTime, endDateTime }) => {
         <View style={styles.legendRow}>
           <View style={styles.legendItemWithValue}>
             <View style={styles.legendItem}>
+              <View style={{ position: 'relative', width: 16, height: 6, justifyContent: 'center',marginRight: 6 }}>
+                <View
+                  style={[styles.legendColor, { 
+                    backgroundColor: 'rgba(34, 128, 176, 1)',
+                    height: 2,
+                    width: '100%',
+                    position: 'absolute',
+                  }]}
+                />
+                <View
+                  style={{
+                    width: 6,
+                    height: 6,
+                    borderRadius: 3,
+                    backgroundColor: 'rgba(34, 128, 176, 1)',
+                    alignSelf: 'center',
+                  }}
+                />
+              </View>
+              <Text style={styles.legendLabel}>Apparent</Text>
+            </View>
+            <Text style={styles.legendLabel2}>Power</Text>
+          </View>
+          <View style={styles.legendItemWithValue}>
+            <View style={styles.legendItem}>
               <View
                 style={[styles.legendColor, { backgroundColor: 'rgba(255, 0, 0, 1)' }]}
               />
@@ -387,7 +412,7 @@ const styles = StyleSheet.create({
   legendRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
     marginTop: 16,
     gap: 24,
   },
@@ -406,6 +431,11 @@ const styles = StyleSheet.create({
   legendLabel: {
     fontSize: 13,
     color: '#222',
+  },
+  legendLabel2: {
+    fontSize: 12,
+    color: '#222',
+    marginTop: 2,
   },
   legendItemWithValue: {
     alignItems: 'center',

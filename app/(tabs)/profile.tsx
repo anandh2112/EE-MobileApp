@@ -1,6 +1,10 @@
 import React from "react";
 import { View, Text, Image, TouchableOpacity, TextInput, StyleSheet, ScrollView } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import {
+  widthPercentageToDP as wp,
+  heightPercentageToDP as hp,
+} from 'react-native-responsive-screen';
 
 export default function Profile() {
   const isDisabled = true; // Toggle this if needed
@@ -71,7 +75,7 @@ export default function Profile() {
 
       {isDisabled && (
         <View style={styles.overlay}>
-          <Text style={styles.overlayText}>Section not available</Text>
+          <Text style={styles.overlayText}>Section Not Available</Text>
         </View>
       )}
     </View>
@@ -184,18 +188,18 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: "rgba(198, 197, 197, 0.65)",
+    backgroundColor: "rgba(201, 201, 201, 0.6)",
     justifyContent: "center",
     alignItems: "center",
-    zIndex: 999,
   },
   overlayText: {
-    fontSize: 18,
-    fontWeight: "500",
-    color: "rgba(50, 50, 50, 0.8)",
-    backgroundColor: "rgba(131, 131, 131, 0.8)",
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
+    color: "#ffffffff",
+    fontSize: wp('4%'),
+    fontWeight: "bold",
+    backgroundColor: "#333",
+    paddingHorizontal: wp('4%'),
+    paddingVertical: hp('0.8%'),
+    borderRadius: wp('2%'),
+    fontFamily: "Poppins",
   },
 });

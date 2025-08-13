@@ -94,7 +94,7 @@ export default function Notification() {
           .sort((a, b) => {
             const aKey = `${a.date} ${a.time}`;
             const bKey = `${b.date} ${b.time}`;
-            return aKey.localeCompare(bKey);
+            return bKey.localeCompare(aKey);
           })
           .map((item, index) => ({
             ...item,
@@ -119,27 +119,40 @@ export default function Notification() {
     return `${parseInt(day)}/${parseInt(month)}/${year}`;
   };
 
-  const renderItem = ({ item }: { item: AlertItem }) => (
-    <TouchableOpacity style={styles.notificationCard} activeOpacity={0.7}>
-      <View style={styles.notificationContent}>
-        <Text style={styles.notificationTitle}>{item.alert || item.type}</Text>
-        <Text style={styles.notificationMessage}>Limit: {item.limit}</Text>
-        <Text style={styles.notificationMessage}>Value: {item.value}</Text>
-      </View>
-      <View style={styles.notificationTimeContainer}>
-        <Text style={styles.notificationTimeDate}>
-          {item.minute
-            ? formatDisplayDate(item.minute.split(' ')[0])
-            : formatDisplayDate(item.date)}
-        </Text>
-        <Text style={styles.notificationTimeHour}>
-          {item.minute
-            ? item.minute.split(' ')[1].substring(0, 5)
-            : item.time}
-        </Text>
-      </View>
-    </TouchableOpacity>
-  );
+  const renderItem = ({ item }: { item: AlertItem }) => {
+    // Determine border color based on alert status
+    const borderColor = item.alert?.includes('Ended') ? '#FF3B30' : 
+                       item.alert?.includes('Started') ? '#34C759' : 
+                       '#F6F8FA';
+    
+    return (
+      <TouchableOpacity 
+        style={[
+          styles.notificationCard,
+          { borderColor, borderWidth: 1 }
+        ]} 
+        activeOpacity={0.7}
+      >
+        <View style={styles.notificationContent}>
+          <Text style={styles.notificationTitle}>{item.alert || item.type}</Text>
+          <Text style={styles.notificationMessage}>Limit: {item.limit}</Text>
+          <Text style={styles.notificationMessage}>Value: {item.value}</Text>
+        </View>
+        <View style={styles.notificationTimeContainer}>
+          <Text style={styles.notificationTimeDate}>
+            {item.minute
+              ? formatDisplayDate(item.minute.split(' ')[0])
+              : formatDisplayDate(item.date)}
+          </Text>
+          <Text style={styles.notificationTimeHour}>
+            {item.minute
+              ? item.minute.split(' ')[1].substring(0, 5)
+              : item.time}
+          </Text>
+        </View>
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <View style={styles.container}>

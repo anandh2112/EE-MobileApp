@@ -19,8 +19,8 @@ const tabs = ['My Building', 'Market Trends', 'Eco Tips'];
 
 export default function InsightsTabs() {
   const [activeTab, setActiveTab] = useState(0);
-  const underlineX = useRef(new Animated.Value(0)).current;
-  const underlineWidth = useRef(new Animated.Value(0)).current;
+  const bubbleX = useRef(new Animated.Value(0)).current;
+  const bubbleWidth = useRef(new Animated.Value(0)).current;
 
   const tabLayouts = useRef<{ x: number; width: number }[]>([]).current;
 
@@ -30,11 +30,11 @@ export default function InsightsTabs() {
 
     if (layout) {
       Animated.parallel([
-        Animated.spring(underlineX, {
+        Animated.spring(bubbleX, {
           toValue: layout.x,
           useNativeDriver: false,
         }),
-        Animated.spring(underlineWidth, {
+        Animated.spring(bubbleWidth, {
           toValue: layout.width,
           useNativeDriver: false,
         }),
@@ -47,8 +47,8 @@ export default function InsightsTabs() {
     tabLayouts[index] = { x, width };
 
     if (index === activeTab) {
-      underlineX.setValue(x);
-      underlineWidth.setValue(width);
+      bubbleX.setValue(x);
+      bubbleWidth.setValue(width);
     }
   };
 
@@ -61,6 +61,17 @@ export default function InsightsTabs() {
 
         {/* Tabs */}
         <View style={styles.tabContainer}>
+          {/* Animated Bubble */}
+          <Animated.View
+            style={[
+              styles.bubble,
+              {
+                left: bubbleX,
+                width: bubbleWidth,
+              },
+            ]}
+          />
+
           {tabs.map((tab, index) => (
             <Pressable
               key={index}
@@ -78,16 +89,6 @@ export default function InsightsTabs() {
               </Text>
             </Pressable>
           ))}
-
-          <Animated.View
-            style={[
-              styles.underline,
-              {
-                left: underlineX,
-                width: underlineWidth,
-              },
-            ]}
-          />
         </View>
 
         {/* Tab content */}
@@ -125,29 +126,33 @@ const styles = StyleSheet.create({
   },
   tabContainer: {
     flexDirection: 'row',
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
     position: 'relative',
+    backgroundColor: '#F5F5F5',
+    borderRadius: wp('4%'),
+    padding: wp('0.5%'), // reduced padding for sleekness
+    height: hp('4.5%'), // reduced height for even sleeker look
   },
   tab: {
     flex: 1,
     alignItems: 'center',
-    paddingVertical: hp('1.2%'),
+    justifyContent: 'center',
+    borderRadius: wp('4%'),
   },
   tabText: {
-    fontSize: wp('3.6%'),
+    fontSize: wp('3.4%'),
     fontWeight: '500',
-    color: '#777',
+    color: '#555',
   },
   activeTabText: {
-    color: '#00A86B',
+    color: '#fff',
     fontWeight: '600',
   },
-  underline: {
+  bubble: {
     position: 'absolute',
-    bottom: 0,
-    height: 2,
+    top: hp('0.25%'), // reduced vertical margin for thinner bubble
+    bottom: hp('0.25%'),
     backgroundColor: '#00A86B',
+    borderRadius: wp('4%'),
   },
   placeholder: {
     paddingTop: hp('3%'),

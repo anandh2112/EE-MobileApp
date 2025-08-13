@@ -18,7 +18,6 @@ import ELog from '@/components/elog';
 import Zones from '@/components/zones';
 import Peakanalysis from '@/components/peakanalysis';
 import AnComp from '@/components/an-comp';
-import DateTimeRangePicker from '@/components/datetimerangepicker';
 
 const tabs = [
   { label: 'eLog', key: 'eLog' },
@@ -46,8 +45,8 @@ export default function Analytics() {
   const [end, setEnd] = useState(endDate || '');
   const [shouldForceZonesTab, setShouldForceZonesTab] = useState(false);
 
-  const underlineX = useRef(new Animated.Value(0)).current;
-  const underlineWidth = useRef(new Animated.Value(0)).current;
+  const bubbleX = useRef(new Animated.Value(0)).current;
+  const bubbleWidth = useRef(new Animated.Value(0)).current;
   const tabLayouts = useRef<{ x: number; width: number }[]>([]).current;
 
   useEffect(() => {
@@ -68,11 +67,11 @@ export default function Analytics() {
     if (tabIndex >= 0 && tabLayouts[tabIndex]) {
       const layout = tabLayouts[tabIndex];
       Animated.parallel([
-        Animated.spring(underlineX, {
+        Animated.spring(bubbleX, {
           toValue: layout.x,
           useNativeDriver: false,
         }),
-        Animated.spring(underlineWidth, {
+        Animated.spring(bubbleWidth, {
           toValue: layout.width,
           useNativeDriver: false,
         }),
@@ -91,8 +90,8 @@ export default function Analytics() {
     tabLayouts[index] = { x, width };
 
     if (tabs[index].key === activeTab) {
-      underlineX.setValue(x);
-      underlineWidth.setValue(width);
+      bubbleX.setValue(x);
+      bubbleWidth.setValue(width);
     }
   };
 
@@ -112,6 +111,16 @@ export default function Analytics() {
 
         {/* Tabs */}
         <View style={styles.tabContainer}>
+          {/* Animated Bubble */}
+          <Animated.View
+            style={[
+              styles.bubble,
+              {
+                left: bubbleX,
+                width: bubbleWidth,
+              },
+            ]}
+          />
           {tabs.map((tab, index) => (
             <Pressable
               key={tab.key}
@@ -129,26 +138,10 @@ export default function Analytics() {
               </Text>
             </Pressable>
           ))}
-
-          <Animated.View
-            style={[
-              styles.underline,
-              {
-                left: underlineX,
-                width: underlineWidth,
-              },
-            ]}
-          />
         </View>
 
         {/* Date Picker */}
         <AnComp onDateChange={handleDateChange} />
-
-        {/* <DateTimeRangePicker 
-          onDateChange={handleDateChange}
-          variant="minimal"
-          timeFormat="12h"
-        /> */}
 
         {/* Tab Content */}
         <View style={{ flex: 1 }}>
@@ -187,29 +180,33 @@ const styles = StyleSheet.create({
   },
   tabContainer: {
     flexDirection: 'row',
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
     position: 'relative',
+    backgroundColor: '#F5F5F5',
+    borderRadius: wp('4%'),
+    padding: wp('0.5%'), // reduced padding for sleekness
+    height: hp('4.5%'), // reduced height for even sleeker look
     marginBottom: hp('1%'),
   },
   tab: {
     flex: 1,
     alignItems: 'center',
-    paddingVertical: hp('1.2%'),
+    justifyContent: 'center',
+    borderRadius: wp('4%'),
   },
   tabText: {
-    fontSize: wp('3.6%'),
+    fontSize: wp('3.4%'),
     fontWeight: '500',
-    color: '#777',
+    color: '#555',
   },
   activeTabText: {
-    color: '#00A86B',
+    color: '#fff',
     fontWeight: '600',
   },
-  underline: {
+  bubble: {
     position: 'absolute',
-    bottom: 0,
-    height: 2,
+    top: hp('0.25%'), // reduced vertical margin for thinner bubble
+    bottom: hp('0.25%'),
     backgroundColor: '#00A86B',
+    borderRadius: wp('4%'),
   },
 });
